@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lautzu Staff Shift Scheduler</title>
+    <script>
+        // Check login status
+        if (!sessionStorage.getItem('isLoggedIn')) {
+            window.location.href = 'login.html';
+        }
+    </script>
     <style>
         * {
             margin: 0;
@@ -455,12 +461,6 @@
     </style>
 </head>
 <body>
-    <script>
-        // Check if the user is logged in. If not, redirect to the login page.
-        if (sessionStorage.getItem('isLoggedIn') !== 'true') {
-            window.location.href = 'index.html';
-        }
-    </script>
     <div id="spinner-overlay" class="spinner-overlay">
         <div class="spinner"></div>
     </div>
@@ -506,8 +506,12 @@
 
         <div class="schedule-container">
             <div id="alerts"></div>
-            <table class="schedule-table" id="scheduleTable">
-                <thead id="tableHeader"></thead>
+            <table class="schedule-table">
+                <thead>
+                    <tr id="tableHeader">
+                        <th>Employee</th>
+                    </tr>
+                </thead>
                 <tbody id="tableBody"></tbody>
             </table>
         </div>
@@ -604,6 +608,9 @@
     </div>
 
     <script>
+        // Initialize the application when page loads
+        document.addEventListener('DOMContentLoaded', initializeApp);
+
         // Employee data structure
         const shifts = {
             'day': {name: 'Day', time: '6AM-2PM', hours: 8, class: 'day-shift'},
@@ -695,6 +702,17 @@
             sunday.setDate(today.getDate() - today.getDay());
             document.getElementById('scheduleStart').value = sunday.toISOString().split('T')[0];
             appState.startDate = sunday;
+        }
+
+        function getDatesArray(startDate) {
+            const dates = [];
+            const start = new Date(startDate);
+            for (let i = 0; i < 14; i++) {
+                const date = new Date(start);
+                date.setDate(start.getDate() + i);
+                dates.push(date);
+            }
+            return dates;
         }
 
         function populateLeaveEmployeeSelect() {
@@ -937,18 +955,18 @@
         }
 
         function renderSchedule() {
-            const tableBody = document.getElementById('scheduleBody');
-            const tableHeadRow = document.querySelector('#scheduleHead tr');
+            const tableBody = document.getElementById('tableBody');
+            const tableHeader = document.getElementById('tableHeader');
             tableBody.innerHTML = '';
-            tableHeadRow.innerHTML = '<th>Employee</th>';
+            tableHeader.innerHTML = '<th>Employee</th>';
 
-            const dates = getDatesArray(appState.startDate, appState.endDate);
+            const dates = getDatesArray(appState.startDate);
             const dateOptions = { weekday: 'short', month: 'numeric', day: 'numeric' };
 
             dates.forEach(date => {
                 const th = document.createElement('th');
                 th.textContent = new Intl.DateTimeFormat('en-US', dateOptions).format(date);
-                tableHeadRow.appendChild(th);
+                tableHeader.appendChild(th);
             });
 
             appState.employees.forEach(emp => {
@@ -1558,9 +1576,6 @@
                 closeEmployeeModal();
             }
         };
-
-        // Initialize the application when page loads
-        document.addEventListener('DOMContentLoaded', initializeApp);
 
         // Advanced scheduling functions for better automation
         function checkNightToMorningViolation(empId, date, shiftType) {
