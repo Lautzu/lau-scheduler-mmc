@@ -1,0 +1,1860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lautzu Staff Shift Scheduler</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-top-left-radius: 15px;
+            border-top-right-radius: 15px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .controls {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #d32f2f 100%);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .date-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .date-selector input {
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .schedule-container {
+            padding: 20px;
+            overflow: auto;
+            max-height: 70vh;
+        }
+
+        .schedule-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-radius: 10px;
+        }
+
+        .schedule-table th {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 15px 8px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .schedule-table thead tr:first-child th:first-child { border-top-left-radius: 10px; }
+        .schedule-table thead tr:first-child th:last-child { border-top-right-radius: 10px; }
+        .schedule-table tbody tr:last-child td:first-child { border-bottom-left-radius: 10px; }
+        .schedule-table tbody tr:last-child td:last-child { border-bottom-right-radius: 10px; }
+
+        .schedule-table td {
+            padding: 12px 8px;
+            text-align: center;
+            border: 1px solid #ddd;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .schedule-table td:hover {
+            transform: scale(1.05);
+            z-index: 10;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .employee-name {
+            background: #f8f9fa;
+            font-weight: 700;
+            color: #2c3e50;
+            padding: 15px 10px;
+            border-right: 3px solid #3498db;
+            min-width: 150px;
+            text-align: left;
+        }
+
+        .role-indicator {
+            font-size: 10px;
+            color: #666;
+            display: block;
+            margin-top: 3px;
+        }
+
+        /* Shift Colors */
+        .day-shift { background: #e3f2fd; color: #0d47a1; }
+        .evening-shift { background: #e8f5e8; color: #1b5e20; }
+        .night-shift { background: #f3e5f5; color: #4a148c; }
+        .day-ot { background: #fff3e0; color: #e65100; }
+        .night-ot { background: #fce4ec; color: #880e4f; }
+        .off-day { background: #f5f5f5; color: #757575; }
+        .leave { background: #fff9c4; color: #f57f17; }
+
+        /* Role border colors */
+        .senior-duty { border-left: 4px solid #e74c3c; }
+        .icu { border-left: 4px solid #3498db; }
+        .wards { border-left: 4px solid #2ecc71; }
+        .emergency { border-left: 4px solid #f39c12; }
+        .outpatient { border-left: 4px solid #9b59b6; }
+
+        .stats-panel {
+            background: #f8f9fa;
+            padding: 20px;
+            border-top: 1px solid #e9ecef;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            border-bottom-left-radius: 15px;
+            border-bottom-right-radius: 15px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+
+        .modal-header {
+            border-bottom: 2px solid #eee;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .form-group select, .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .alert {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .violation-cell {
+            outline: 3px solid #e74c3c !important;
+            outline-offset: -3px;
+        }
+
+        .week-separator {
+            border-right: 3px solid #95a5a6;
+        }
+
+        /* === Freeze panes === */
+        .schedule-container {
+            padding: 20px;
+            overflow: auto; /* both directions */
+            max-height: 70vh;
+        }
+        .schedule-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 3;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); /* keep same style when sticky */
+            color: #fff;
+        }
+        .schedule-table th:first-child {
+            position: sticky;
+            left: 0;
+            z-index: 4;
+            background: #fff;
+        }
+
+        :root {
+            --header-h: 40px; /* fallback, gets overwritten in JS */
+        }
+
+        /* Spinner for loading state */
+        .spinner-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.7);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .spinner {
+            border: 8px solid #f3f3f3;
+            border-top: 8px solid #3498db;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="spinner-overlay" class="spinner-overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>🏥 Lautzu's Staff Scheduler</h1>
+            <p>24/7 Coverage • 16 Employees • 5 Departments</p>
+        </div>
+
+        <div class="controls">
+            <div class="date-selector">
+                <label for="scheduleStart"><strong>Schedule Start (Sunday):</strong></label>
+                <input type="date" id="scheduleStart">
+            </div>
+            
+            <button class="btn btn-primary" onclick="generateSchedule()">🔄 Generate Auto Schedule</button>
+            <button class="btn btn-success" onclick="exportToExcel()">📊 Export to Excel</button>
+            <button class="btn btn-warning" onclick="showLeaveModal()">📅 Manage Leave</button>
+            <button class="btn btn-primary" onclick="showEmployeeModal()">👥 Manage Employees</button>
+            <button class="btn btn-primary" onclick="optimizeSchedule()">⚡ Optimize</button>
+            <button class="btn btn-warning" onclick="displayValidationAlerts()">🚨 Check Alerts</button>
+            <button class="btn btn-danger" onclick="clearSchedule()">🧹 Clear Schedule</button>
+            <button class="btn btn-success" onclick="saveScheduleState()">💾 Save Schedule</button>
+
+            <div class="legend">
+                <div class="legend-item day-shift">Day 6AM-2PM</div>
+                <div class="legend-item evening-shift">Evening 2PM-10PM</div>
+                <div class="legend-item night-shift">Night 10PM-6AM</div>
+                <div class="legend-item day-ot">Day OT 6AM-6PM</div>
+                <div class="legend-item night-ot">Night OT 6PM-6AM</div>
+                <div class="legend-item off-day">Off</div>
+                <div class="legend-item leave">Leave</div>
+            </div>
+        </div>
+
+        <div class="history-controls" style="padding: 15px 20px; background: #e9ecef; border-bottom: 1px solid #ddd; display: flex; gap: 15px; align-items: center;">
+            <label for="savedSchedules"><strong>Schedule History:</strong></label>
+            <select id="savedSchedules" style="flex-grow: 1; padding: 8px 12px; border: 2px solid #ccc; border-radius: 6px;"></select>
+            <button class="btn btn-primary" onclick="loadSelectedSchedule()">📂 Load</button>
+            <button class="btn btn-danger" onclick="deleteSelectedSchedule()">🗑️ Delete</button>
+        </div>
+
+        <div class="schedule-container">
+            <div id="alerts"></div>
+            <table class="schedule-table" id="scheduleTable">
+                <thead id="tableHeader"></thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+
+        <div class="stats-panel">
+            <div class="stat-card">
+                <div class="stat-value" id="totalHours">0</div>
+                <div class="stat-label">Total Hours Scheduled</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="otHours">0</div>
+                <div class="stat-label">Overtime Hours</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgCoverage">0</div>
+                <div class="stat-label">Avg Coverage per Shift</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="violations">0</div>
+                <div class="stat-label">Schedule Violations</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leave Management Modal -->
+    <div id="leaveModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="close" onclick="closeLeaveModal()">&times;</span>
+                <h2>Manage Leave Requests</h2>
+                <p>Assign leave days and the system will automatically adjust coverage</p>
+            </div>
+            <div class="form-group">
+                <label for="leaveEmployee">Employee:</label>
+                <select id="leaveEmployee"></select>
+            </div>
+            <div class="form-group">
+                <label for="leaveStartDate">Start Date:</label>
+                <input type="date" id="leaveStartDate">
+            </div>
+            <div class="form-group">
+                <label for="leaveEndDate">End Date:</label>
+                <input type="date" id="leaveEndDate">
+            </div>
+            <div class="form-group">
+                <label for="leaveType">Leave Type:</label>
+                <select id="leaveType">
+                    <option value="vacation">Vacation</option>
+                    <option value="sick">Sick Leave</option>
+                    <option value="personal">Personal</option>
+                    <option value="off">Regular Off Day</option>
+                </select>
+            </div>
+            <button class="btn btn-success" onclick="assignLeave()">Assign Leave</button>
+            <button class="btn" onclick="closeLeaveModal()">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Employee Management Modal -->
+    <div id="employeeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="close" onclick="closeEmployeeModal()">&times;</span>
+                <h2>Manage Employees</h2>
+                <p>Add, edit, or remove employees</p>
+            </div>
+            <div class="form-group">
+                <label for="employeeSelect">Select Employee:</label>
+                <select id="employeeSelect" onchange="populateEmployeeFields()"></select>
+            </div>
+            <div class="form-group">
+                <label for="employeeName">Name:</label>
+                <input type="text" id="employeeName">
+            </div>
+            <div class="form-group">
+                <label for="employeeRole">Role/Department:</label>
+                <select id="employeeRole">
+                    <option value="Senior-on-Duty">Senior-on-Duty</option>
+                    <option value="ICU">ICU</option>
+                    <option value="WARDS">WARDS</option>
+                    <option value="Emergency">Emergency</option>
+                    <option value="Outpatient">Outpatient</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="employeeCanSeniorDuty"> Can take Senior Duty
+                </label>
+            </div>
+            <button class="btn btn-success" onclick="saveEmployee()">💾 Save</button>
+            <button class="btn btn-danger" onclick="deleteEmployee()">🗑️ Delete</button>
+            <button class="btn" onclick="closeEmployeeModal()">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        // Employee data structure
+        const shifts = {
+            'day': {name: 'Day', time: '6AM-2PM', hours: 8, class: 'day-shift'},
+            'evening': {name: 'Evening', time: '2PM-10PM', hours: 8, class: 'evening-shift'},
+            'night': {name: 'Night', time: '10PM-6AM', hours: 8, class: 'night-shift'},
+            'day-ot': {name: 'Day OT', time: '6AM-6PM', hours: 12, class: 'day-ot'},
+            'night-ot': {name: 'Night OT', time: '6PM-6AM', hours: 12, class: 'night-ot'},
+            'off': {name: 'Off', time: '', hours: 0, class: 'off-day'},
+            'leave': {name: 'Leave', time: '', hours: 0, class: 'leave'}
+        };
+
+        let appState = {
+            employees: [],
+            schedule: {},
+            leaveRequests: {},
+            startDate: new Date(),
+            lastAlerts: '',
+            lastAlertType: 'success',
+            shiftAssignedCounts: {},
+            otAssignmentCounter: 0,
+        };
+
+        function loadEmployees() {
+            const storedEmployees = localStorage.getItem('employees');
+            if (storedEmployees) {
+                appState.employees = JSON.parse(storedEmployees);
+            } else {
+                // If nothing in storage, use the default hardcoded list
+                appState.employees = [
+                    {id: 1, name: "Rico C. Campos, RTRP", role: "Senior-on-Duty", tenure: 1, canSeniorDuty: true},
+                    {id: 2, name: "Maria Katrina S. Pattung, RTRP", role: "Senior-on-Duty", tenure: 2, canSeniorDuty: true},
+                    {id: 3, name: "Mariam B. Buddin, RTRP", role: "Senior-on-Duty", tenure: 3, canSeniorDuty: true},
+                    {id: 4, name: "Ruiza E. San Antonio, RTRP", role: "Senior-on-Duty", tenure: 4, canSeniorDuty: true},
+                    {id: 5, name: "Faith D. Villanueva, RTRP", role: "Senior-on-Duty", tenure: 5, canSeniorDuty: true},
+                    {id: 6, name: "Blessilda D. Larzdizabal, RTRP", role: "Senior-on-Duty", tenure: 6, canSeniorDuty: true},
+                    {id: 7, name: "Jecilyn A. Usman, RTRP", role: "ICU", tenure: 7, canSeniorDuty: false},
+                    {id: 8, name: "Christine Joyce M. Villareal, RTRP", role: "ICU", tenure: 8, canSeniorDuty: false},
+                    {id: 9, name: "Rania S. Casalin, RTRP", role: "WARDS", tenure: 9, canSeniorDuty: false},
+                    {id: 10, name: "Kamila D. Ahajul, RTRP", role: "WARDS", tenure: 10, canSeniorDuty: false},
+                    {id: 11, name: "Ameera M. Ebni, RTRP", role: "WARDS", tenure: 11, canSeniorDuty: false},
+                    {id: 12, name: "Eunice Yvonne L. Trinidad, RTRP", role: "Emergency", tenure: 12, canSeniorDuty: false},
+                    {id: 13, name: "Yannina Marie J. Valdeñas, RTRP", role: "Emergency", tenure: 13, canSeniorDuty: false},
+                    {id: 14, name: "Pia P. Lacson, RTRP", role: "Outpatient", tenure: 14, canSeniorDuty: false},
+                    {id: 15, name: "Shaina Mae P. Rodriguez, RTRP", role: "Outpatient", tenure: 15, canSeniorDuty: false},
+                    {id: 16, name: "Crizel Ann A. Davis, RTRP", role: "Outpatient", tenure: 16, canSeniorDuty: false},
+                    {id: 17, name: "Benjamin P. Ortiz, RTRP", role: "Outpatient", tenure: 17, canSeniorDuty: false},
+                    {id: 18, name: "Charlene Mae L. Gonzales, RTRP", role: "Outpatient", tenure: 18, canSeniorDuty: false},
+                    {id: 19, name: "Jerricho Ian I. Vistar, RTRP", role: "Outpatient", tenure: 19, canSeniorDuty: false}
+                ];
+            }
+        }
+
+        function saveEmployees() {
+            localStorage.setItem('employees', JSON.stringify(appState.employees));
+        }
+
+        function showSpinner() {
+            document.getElementById('spinner-overlay').style.display = 'flex';
+        }
+
+        function hideSpinner() {
+            document.getElementById('spinner-overlay').style.display = 'none';
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Initialize the application
+        function initializeApp() {
+            loadEmployees();
+            setDefaultStartDate();
+            populateLeaveEmployeeSelect();
+            populateSavedSchedules();
+            generateSchedule();
+        }
+
+        function setDefaultStartDate() {
+            const today = new Date();
+            const sunday = new Date(today);
+            sunday.setDate(today.getDate() - today.getDay());
+            document.getElementById('scheduleStart').value = sunday.toISOString().split('T')[0];
+            appState.startDate = sunday;
+        }
+
+        function populateLeaveEmployeeSelect() {
+            const select = document.getElementById('leaveEmployee');
+            select.innerHTML = '';
+            appState.employees.forEach(emp => {
+                const option = document.createElement('option');
+                option.value = emp.id;
+                option.textContent = `${emp.name} (${emp.role})`;
+                select.appendChild(option);
+            });
+        }
+
+        function generateSchedule() {
+            const startDateInput = document.getElementById('scheduleStart').value;
+            if (!startDateInput) {
+                showAlert('Please select a start date', 'error');
+                return;
+            }
+            showSpinner();
+            setTimeout(() => { // Use timeout to allow spinner to render
+                try {
+                    appState.startDate = new Date(startDateInput);
+                    if (appState.startDate.getDay() !== 0) {
+                        showAlert('Start date must be a Sunday', 'error');
+                        return;
+                    }
+
+                    appState.schedule = {};
+                    
+                    // Initialize schedule structure
+                    for (let day = 0; day < 14; day++) {
+                        const date = new Date(appState.startDate);
+                        date.setDate(appState.startDate.getDate() + day);
+                        const dateStr = date.toISOString().split('T')[0];
+                        
+                        appState.schedule[dateStr] = {};
+                        appState.employees.forEach(emp => {
+                            appState.schedule[dateStr][emp.id] = 'off';
+                        });
+                    }
+
+                    // Apply leave requests first
+                    applyLeaveRequests();
+
+                    // Generate automatic schedule
+                    autoGenerateSchedule();
+                    
+                    renderSchedule();
+                    updateStatistics();
+                    validateSchedule();
+                } finally {
+                    hideSpinner();
+                }
+            }, 10);
+        }
+
+        function autoGenerateSchedule() {
+            const dates = Object.keys(appState.schedule).sort();
+            
+            // Track consecutive days worked for each employee
+            let consecutiveDays = {};
+            appState.employees.forEach(emp => {
+                consecutiveDays[emp.id] = 0;
+            });
+
+            appState.employees.forEach(emp => {
+                appState.shiftAssignedCounts[emp.id] = 0; // reset counts each generation
+            });
+
+            appState.otAssignmentCounter = 0; // Reset for every new schedule
+
+            dates.forEach((date, dayIndex) => {
+                // Ensure minimum coverage and role requirements
+                assignDailyShifts(date, dayIndex, consecutiveDays);
+            });
+        }
+
+        function assignDailyShifts(date, dayIndex, consecutiveDays) {
+            const availableEmployees = appState.employees.filter(emp => 
+                appState.schedule[date][emp.id] !== 'leave'
+            );
+
+            // Ensure at least one Senior-on-Duty is present
+            const seniorDutyPool = availableEmployees.filter(emp => emp.canSeniorDuty);
+            
+            // Distribute shifts ensuring coverage
+            const shiftTypes = ['day', 'evening', 'night'];
+            
+            shiftTypes.forEach(shiftType => {
+                assignShiftType(date, shiftType, availableEmployees, seniorDutyPool, consecutiveDays);
+            });
+
+            // Update consecutive days tracking
+            appState.employees.forEach(emp => {
+                if (appState.schedule[date][emp.id] !== 'off' && appState.schedule[date][emp.id] !== 'leave') {
+                    consecutiveDays[emp.id]++;
+                } else {
+                    consecutiveDays[emp.id] = 0;
+                }
+            });
+        }
+
+        function assignShiftType(date, shiftType, availableEmployees, seniorDutyPool, consecutiveDays) {
+            const neededStaff = 5; // Minimum 5 staff per shift for 24/7 coverage
+            let assigned = 0;
+            const dates = Object.keys(appState.schedule).sort();
+            const weekNum = dates.indexOf(date) >= 7 ? 1 : 0;
+            // Required departments for comprehensive coverage
+            const requiredDepartments = ['Senior-on-Duty', 'ICU', 'WARDS', 'Emergency', 'Outpatient'];
+            const assignedDepartments = new Set();
+            // Calculate off days so far this week for each employee
+            const offDaysCount = {};
+            appState.employees.forEach(emp => {
+                const weekStart = weekNum === 0 ? dates[0] : dates[7];
+                const weekEnd = weekNum === 0 ? dates[6] : dates[13];
+                let count = 0;
+                for (let d = dates.indexOf(weekStart); d <= dates.indexOf(weekEnd); d++) {
+                    const currentDate = dates[d];
+                    if (appState.schedule[currentDate][emp.id] === 'off' || 
+                        appState.schedule[currentDate][emp.id] === 'leave') {
+                        count++;
+                    }
+                }
+                offDaysCount[emp.id] = count;
+            });
+            // Prioritize employees with fewer consecutive days and who need more off days
+            const sortedEmployees = availableEmployees
+                .filter(emp => appState.schedule[date][emp.id] === 'off')
+                .sort((a, b) => {
+                    // 1) Equalize total assigned shifts across all employees
+                    const diffShifts = getShiftCountSoFar(a.id) - getShiftCountSoFar(b.id);
+                    if (diffShifts !== 0) return diffShifts; // fewer shifts first
+                    // 2) Off-day need
+                    const aOffDaysNeeded = 2 - offDaysCount[a.id];
+                    const bOffDaysNeeded = 2 - offDaysCount[b.id];
+                    if (aOffDaysNeeded !== bOffDaysNeeded) {
+                        return bOffDaysNeeded - aOffDaysNeeded; // Higher need first
+                    }
+                    // 3) Consecutive days worked
+                    return consecutiveDays[a.id] - consecutiveDays[b.id];
+                });
+            // PHASE 1: Ensure one staff member from each department
+            requiredDepartments.forEach(dept => {
+                if (assigned >= neededStaff) return;
+                const deptEmployee = sortedEmployees.find(emp => 
+                    emp.role === dept && 
+                    appState.schedule[date][emp.id] === 'off' && 
+                    consecutiveDays[emp.id] < 3 &&
+                    !assignedDepartments.has(emp.role) &&
+                    offDaysCount[emp.id] < 2 &&
+                    getWeeklyShiftCount(emp.id, weekNum, dates) < 5 && // Enforce max 5 shifts per week
+                    !checkNightToMorningViolation(emp.id, date, shiftType)
+                );
+                if (deptEmployee) {
+                    // Assign OT shift if this is day/night and employee has less OT so far
+                    let assignOT = false;
+                    if ((shiftType === 'day' || shiftType === 'night')) {
+                        const otType = shiftType === 'day' ? 'day-ot' : 'night-ot';
+                        // Only assign OT if not already assigned to someone else for this shift
+                        const otAssigned = appState.employees.some(e => appState.schedule[date][e.id] === otType);
+                        if (!otAssigned) {
+                             // Every 4th opportunity, assign an OT shift.
+                            if (appState.otAssignmentCounter % 4 === 0) {
+                                assignOT = true;
+                            }
+                            appState.otAssignmentCounter++;
+                        }
+                    }
+                    appState.schedule[date][deptEmployee.id] = assignOT ? (shiftType === 'day' ? 'day-ot' : shiftType === 'night' ? 'night-ot' : shiftType) : shiftType;
+                    assignedDepartments.add(deptEmployee.role);
+                    assigned++;
+                    appState.shiftAssignedCounts[deptEmployee.id]++; // track assignment
+                }
+            });
+            // PHASE 2: Fill remaining positions while ensuring off day requirements
+            const priorityDepartments = ['ICU', 'Emergency', 'WARDS', 'Senior-on-Duty', 'Outpatient'];
+            while (assigned < neededStaff) {
+                let foundEmployee = false;
+                for (const dept of priorityDepartments) {
+                    const deptEmployee = sortedEmployees.find(emp => 
+                        emp.role === dept && 
+                        appState.schedule[date][emp.id] === 'off' && 
+                        consecutiveDays[emp.id] < 3 &&
+                        offDaysCount[emp.id] < 2 &&
+                        getWeeklyShiftCount(emp.id, weekNum, dates) < 5 && // Enforce max 5 shifts per week
+                        !checkNightToMorningViolation(emp.id, date, shiftType)
+                    );
+                    if (deptEmployee) {
+                        // Assign OT shift if this is day/night and employee has less OT so far
+                        let assignOT = false;
+                        if ((shiftType === 'day' || shiftType === 'night')) {
+                            const otType = shiftType === 'day' ? 'day-ot' : 'night-ot';
+                            const otAssigned = appState.employees.some(e => appState.schedule[date][e.id] === otType);
+                            if (!otAssigned) {
+                                // Every 4th opportunity, assign an OT shift.
+                                if (appState.otAssignmentCounter % 4 === 0) {
+                                    assignOT = true;
+                                }
+                                appState.otAssignmentCounter++;
+                            }
+                        }
+                        appState.schedule[date][deptEmployee.id] = assignOT ? (shiftType === 'day' ? 'day-ot' : shiftType === 'night' ? 'night-ot' : shiftType) : shiftType;
+                        assigned++;
+                        foundEmployee = true;
+                        appState.shiftAssignedCounts[deptEmployee.id]++; // track assignment
+                        break;
+                    }
+                }
+                if (!foundEmployee) {
+                    // If we can't find anyone who hasn't met their off day quota,
+                    // or max shifts, we might need to use someone who has
+                    const anyAvailable = sortedEmployees.find(emp => 
+                        appState.schedule[date][emp.id] === 'off' && 
+                        consecutiveDays[emp.id] < 3 &&
+                        getWeeklyShiftCount(emp.id, weekNum, dates) < 5 &&
+                        !checkNightToMorningViolation(emp.id, date, shiftType)
+                    );
+                    if (anyAvailable) {
+                        let assignOT = false;
+                        if ((shiftType === 'day' || shiftType === 'night')) {
+                            const otType = shiftType === 'day' ? 'day-ot' : 'night-ot';
+                            const otAssigned = appState.employees.some(e => appState.schedule[date][e.id] === otType);
+                            if (!otAssigned) {
+                                // Every 4th opportunity, assign an OT shift.
+                                if (appState.otAssignmentCounter % 4 === 0) {
+                                    assignOT = true;
+                                }
+                                appState.otAssignmentCounter++;
+                            }
+                        }
+                        appState.schedule[date][anyAvailable.id] = assignOT ? (shiftType === 'day' ? 'day-ot' : shiftType === 'night' ? 'night-ot' : shiftType) : shiftType;
+                        assigned++;
+                        appState.shiftAssignedCounts[anyAvailable.id]++; // track assignment
+                    } else {
+                        break; // No more available staff
+                    }
+                }
+            }
+        }
+
+        function renderSchedule() {
+            const table = document.getElementById('scheduleTable');
+            const header = document.getElementById('tableHeader');
+            const body = document.getElementById('tableBody');
+
+            // Clear existing content
+            header.innerHTML = '';
+            body.innerHTML = '';
+
+            // Create header
+            const headerRow = document.createElement('tr');
+            headerRow.innerHTML = '<th>Employee</th>';
+            
+            const dates = Object.keys(appState.schedule).sort();
+            dates.forEach((date, index) => {
+                const dateObj = new Date(date);
+                const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+                const dayNum = dateObj.getDate();
+                const th = document.createElement('th');
+                th.innerHTML = `${dayName}<br>${dayNum}`;
+                if (index === 6) { // End of the first week (Saturday)
+                    th.classList.add('week-separator');
+                }
+                headerRow.appendChild(th);
+            });
+            header.appendChild(headerRow);
+
+            // Create employee rows
+            appState.employees.forEach((emp, index) => {
+                const row = document.createElement('tr');
+                
+                // Employee name cell
+                const nameCell = document.createElement('td');
+                nameCell.className = `employee-name ${getRoleClass(emp.role)}`;
+                nameCell.innerHTML = `
+                    ${emp.name}
+                    <span class="role-indicator">${emp.role}</span>
+                `;
+                row.appendChild(nameCell);
+
+                // Shift cells
+                dates.forEach((date, dateIndex) => {
+                    const cell = document.createElement('td');
+                    const shiftType = appState.schedule[date][emp.id];
+                    const shift = shifts[shiftType];
+                    
+                    cell.className = shift.class;
+                    if (dateIndex === 6) { // End of the first week
+                        cell.classList.add('week-separator');
+                    }
+                    cell.innerHTML = `
+                        <div>${shift.name}</div>
+                        <small>${shift.time}</small>
+                    `;
+                    cell.onclick = () => toggleShift(emp.id, date, cell);
+                    row.appendChild(cell);
+                });
+
+                body.appendChild(row);
+            });
+        }
+
+        function getRoleClass(role) {
+            const roleMap = {
+                'Senior-on-Duty': 'senior-duty',
+                'ICU': 'icu',
+                'WARDS': 'wards',
+                'Emergency': 'emergency',
+                'Outpatient': 'outpatient'
+            };
+            return roleMap[role] || '';
+        }
+
+        const debouncedValidation = debounce(() => {
+            updateStatistics();
+            validateSchedule();
+        }, 500);
+
+        function toggleShift(empId, date, cell) {
+            const currentShift = appState.schedule[date][empId];
+            const shiftKeys = Object.keys(shifts);
+            const currentIndex = shiftKeys.indexOf(currentShift);
+            const nextIndex = (currentIndex + 1) % shiftKeys.length;
+            const nextShift = shiftKeys[nextIndex];
+
+            appState.schedule[date][empId] = nextShift;
+            
+            const shift = shifts[nextShift];
+            cell.className = shift.class;
+            cell.innerHTML = `
+                <div>${shift.name}</div>
+                <small>${shift.time}</small>
+            `;
+
+            debouncedValidation();
+            
+            // Re-run validation checks for this specific cell for instant feedback
+            const row = cell.parentNode;
+            for (let i = 1; i < row.cells.length; i++) { // Start at 1 to skip name cell
+                row.cells[i].classList.remove('violation-cell');
+                row.cells[i].title = '';
+            }
+
+            const dates = Object.keys(appState.schedule).sort();
+            const emp = appState.employees.find(e => e.id === empId);
+
+            // Check 1: Consecutive days
+            let consecutive = 0;
+            let currentConsecutive = 0;
+            dates.forEach(d => {
+                if (appState.schedule[d][empId] !== 'off' && appState.schedule[d][empId] !== 'leave') {
+                    currentConsecutive++;
+                } else {
+                    currentConsecutive = 0;
+                }
+                if (currentConsecutive > 3) {
+                    // Find the start of this consecutive block to highlight all cells in it
+                    const blockStartDateIndex = dates.indexOf(d) - currentConsecutive + 1;
+                    for (let i = blockStartDateIndex; i <= dates.indexOf(d); i++) {
+                        const problemCell = row.cells[i + 1]; // +1 to account for employee name cell
+                        if (problemCell) {
+                             problemCell.classList.add('violation-cell');
+                             problemCell.title = `Violation: ${currentConsecutive} consecutive working days.`;
+                        }
+                    }
+                }
+            });
+
+
+            // Check 2: Clopening (night -> morning)
+            dates.forEach((d, index) => {
+                if (index > 0) {
+                    const prevDate = dates[index - 1];
+                    const prevShift = appState.schedule[prevDate][empId];
+                    const currentShiftVal = appState.schedule[d][empId];
+
+                    if ((prevShift === 'night' || prevShift === 'night-ot') && (currentShiftVal === 'day' || currentShiftVal === 'day-ot')) {
+                        const row = cell.parentNode;
+                        const problemCell = row.cells[index + 1]; // +1 to account for employee name cell
+                        if (problemCell) {
+                            problemCell.classList.add('violation-cell');
+                            problemCell.title = problemCell.title ? (problemCell.title + ' | Clopening') : 'Violation: Morning shift after night shift.';
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateStatistics() {
+            let totalHours = 0;
+            let otHours = 0;
+            let totalShifts = 0;
+            const dates = Object.keys(appState.schedule);
+
+            appState.employees.forEach(emp => {
+                dates.forEach(date => {
+                    const shiftType = appState.schedule[date][emp.id];
+                    const shift = shifts[shiftType];
+                    totalHours += shift.hours;
+                    totalShifts += shift.hours > 0 ? 1 : 0;
+                    if (shift.hours === 12) {
+                        otHours += 4; // 4 hours OT per 12-hour shift
+                    }
+                });
+            });
+
+            // Calculate average coverage per shift (should be 5 per shift across 3 shifts = 15 per day)
+            const avgCoveragePerShift = totalShifts / (dates.length * 3);
+
+            document.getElementById('totalHours').textContent = totalHours;
+            document.getElementById('otHours').textContent = otHours;
+            document.getElementById('avgCoverage').textContent = Math.round(avgCoveragePerShift * 10) / 10;
+            
+            // Calculate departmental coverage statistics
+            updateDepartmentalStats(dates);
+        }
+
+        function updateDepartmentalStats(dates) {
+            // This could be displayed in a more detailed view
+            const deptStats = {};
+            const requiredDepartments = ['Senior-on-Duty', 'ICU', 'WARDS', 'Emergency', 'Outpatient'];
+            
+            requiredDepartments.forEach(dept => {
+                deptStats[dept] = { total: 0, perShift: { day: 0, evening: 0, night: 0 } };
+            });
+
+            dates.forEach(date => {
+                ['day', 'evening', 'night'].forEach(shift => {
+                    appState.employees.forEach(emp => {
+                        const empShift = appState.schedule[date][emp.id];
+                        if (empShift === shift || 
+                            (shift === 'day' && empShift === 'day-ot') ||
+                            (shift === 'night' && empShift === 'night-ot')) {
+                            deptStats[emp.role].total++;
+                            deptStats[emp.role].perShift[shift]++;
+                        }
+                    });
+                });
+            });
+
+            // Could add a detailed departmental breakdown panel here
+            console.log('Departmental Coverage Stats:', deptStats);
+        }
+
+        function validateSchedule() {
+            let violations = 0;
+            const alerts = [];
+            const dates = Object.keys(appState.schedule).sort();
+
+            // Check minimum coverage and departmental representation
+            dates.forEach(date => {
+                const dayShifts = ['day', 'evening', 'night'];
+                const requiredDepartments = ['Senior-on-Duty', 'ICU', 'WARDS', 'Emergency', 'Outpatient'];
+                
+                dayShifts.forEach(shift => {
+                    // Count total coverage
+                    const coverage = appState.employees.filter(emp => 
+                        appState.schedule[date][emp.id] === shift || 
+                        (shift === 'day' && appState.schedule[date][emp.id] === 'day-ot') ||
+                        (shift === 'night' && appState.schedule[date][emp.id] === 'night-ot')
+                    );
+                    
+                    if (coverage.length < 5) {
+                        violations++;
+                        alerts.push(`⚠️ Low coverage on ${date} ${shift} shift: ${coverage.length}/5 staff`);
+                    }
+
+                    // Check departmental representation
+                    const representedDepts = new Set();
+                    coverage.forEach(emp => representedDepts.add(emp.role));
+                    
+                    const missingDepts = requiredDepartments.filter(dept => !representedDepts.has(dept));
+                    if (missingDepts.length > 0) {
+                        violations++;
+                        alerts.push(`🏥 Missing departments on ${date} ${shift}: ${missingDepts.join(', ')}`);
+                    }
+                });
+
+                // Check Senior-on-Duty presence (at least one per day across all shifts)
+                const seniorPresent = appState.employees.some(emp => 
+                    emp.canSeniorDuty && appState.schedule[date][emp.id] !== 'off' && appState.schedule[date][emp.id] !== 'leave'
+                );
+                if (!seniorPresent) {
+                    violations++;
+                    alerts.push(`👨‍⚕️ No Senior-on-Duty present on ${date}`);
+                }
+            });
+
+            // Check consecutive days
+            appState.employees.forEach(emp => {
+                let consecutive = 0;
+                let maxConsecutive = 0;
+                dates.forEach(date => {
+                    if (appState.schedule[date][emp.id] !== 'off' && appState.schedule[date][emp.id] !== 'leave') {
+                        consecutive++;
+                        maxConsecutive = Math.max(maxConsecutive, consecutive);
+                    } else {
+                        consecutive = 0;
+                    }
+                });
+                
+                if (maxConsecutive > 3) {
+                    violations++;
+                    alerts.push(`⏰ ${emp.name} has ${maxConsecutive} consecutive working days`);
+                }
+            });
+
+            // Check for night-to-morning violations
+            appState.employees.forEach(emp => {
+                dates.forEach((date, index) => {
+                    if (index > 0) {
+                        const prevDate = dates[index - 1];
+                        const prevShift = appState.schedule[prevDate][emp.id];
+                        const currentShift = appState.schedule[date][emp.id];
+
+                        if ((prevShift === 'night' || prevShift === 'night-ot') && (currentShift === 'day' || currentShift === 'day-ot')) {
+                            violations++;
+                            alerts.push(`🔥 ${emp.name} has a night shift followed by a morning shift on ${date}`);
+                        }
+                    }
+                });
+            });
+
+            // Check 4 days off per 2-week period (2 per week) requirement
+            appState.employees.forEach(emp => {
+                const week1Days = dates.slice(0, 7);
+                const week2Days = dates.slice(7, 14);
+                
+                [week1Days, week2Days].forEach((weekDays, weekNum) => {
+                    const offDays = weekDays.filter(date => 
+                        appState.schedule[date][emp.id] === 'off' || appState.schedule[date][emp.id] === 'leave'
+                    ).length;
+                    
+                    if (offDays < 2) {
+                        violations++;
+                        alerts.push(`📅 ${emp.name} has only ${offDays} days off in week ${weekNum + 1} (minimum 2 required)`);
+                    }
+                });
+            });
+
+            document.getElementById('violations').textContent = violations;
+            
+            if (alerts.length > 0) {
+                const alertsToShow = alerts.slice(0, 5);
+                if (alerts.length > 5) {
+                    alertsToShow.push(`... and ${alerts.length - 5} more issues`);
+                }
+                appState.lastAlerts = alertsToShow.join('<br>');
+                appState.lastAlertType = violations > 5 ? 'error' : 'warning';
+            } else {
+                appState.lastAlerts = '✅ Perfect schedule! All requirements met.';
+                appState.lastAlertType = 'success';
+            }
+        }
+
+        function showLeaveModal() {
+            document.getElementById('leaveModal').style.display = 'block';
+        }
+
+        function closeLeaveModal() {
+            document.getElementById('leaveModal').style.display = 'none';
+        }
+
+        function assignLeave() {
+            const empId = parseInt(document.getElementById('leaveEmployee').value);
+            const startDate = document.getElementById('leaveStartDate').value;
+            const endDate = document.getElementById('leaveEndDate').value;
+            const leaveType = document.getElementById('leaveType').value;
+
+            if (!startDate || !endDate) {
+                showAlert('Please select both start and end dates', 'error');
+                return;
+            }
+
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+            
+            if (start > end) {
+                showAlert('Start date must be before end date', 'error');
+                return;
+            }
+
+            // Apply leave to schedule
+            for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+                const dateStr = date.toISOString().split('T')[0];
+                if (appState.schedule[dateStr]) {
+                    appState.schedule[dateStr][empId] = 'leave';
+                }
+            }
+
+            // Store leave request
+            if (!appState.leaveRequests[empId]) appState.leaveRequests[empId] = [];
+            appState.leaveRequests[empId].push({
+                start: startDate,
+                end: endDate,
+                type: leaveType
+            });
+
+            closeLeaveModal();
+            renderSchedule();
+            updateStatistics();
+            validateSchedule();
+            
+            showAlert(`Leave assigned successfully for ${appState.employees.find(e => e.id === empId).name}`, 'success');
+        }
+
+        function applyLeaveRequests() {
+            Object.keys(appState.leaveRequests).forEach(empId => {
+                appState.leaveRequests[empId].forEach(leave => {
+                    const start = new Date(leave.start);
+                    const end = new Date(leave.end);
+                    
+                    for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+                        const dateStr = date.toISOString().split('T')[0];
+                        if (appState.schedule[dateStr]) {
+                            appState.schedule[dateStr][empId] = 'leave';
+                        }
+                    }
+                });
+            });
+        }
+
+        function optimizeSchedule() {
+            const dates = Object.keys(appState.schedule).sort();
+            let improvements = 0;
+
+            // First, ensure minimum off days requirement
+            appState.employees.forEach(emp => {
+                const week1Days = dates.slice(0, 7);
+                const week2Days = dates.slice(7, 14);
+                
+                [week1Days, week2Days].forEach((weekDays, weekNum) => {
+                    const offDays = weekDays.filter(date => 
+                        appState.schedule[date][emp.id] === 'off' || 
+                        appState.schedule[date][emp.id] === 'leave'
+                    ).length;
+                    
+                    if (offDays < 2) {
+                        // Try to add more off days
+                        const daysNeeded = 2 - offDays;
+                        let daysAdded = 0;
+                        
+                        weekDays.forEach(date => {
+                            if (daysAdded < daysNeeded && 
+                                appState.schedule[date][emp.id] !== 'off' && 
+                                appState.schedule[date][emp.id] !== 'leave') {
+                                
+                                // Try to find someone to cover this shift
+                                const shift = appState.schedule[date][emp.id];
+                                const availableEmp = appState.employees.find(otherEmp => 
+                                    otherEmp.id !== emp.id && 
+                                    appState.schedule[date][otherEmp.id] === 'off' &&
+                                    canTakeShift(otherEmp.id, date, shift)
+                                );
+                                
+                                if (availableEmp) {
+                                    appState.schedule[date][availableEmp.id] = shift;
+                                    appState.schedule[date][emp.id] = 'off';
+                                    daysAdded++;
+                                    improvements++;
+                                }
+                            }
+                        });
+                    }
+                });
+            });
+
+            // Balance workload across employees
+            appState.employees.forEach(emp => {
+                if (emp.canSeniorDuty) return; // Skip senior duty optimization for now
+                
+                let totalHours = 0;
+                dates.forEach(date => {
+                    const shift = shifts[appState.schedule[date][emp.id]];
+                    totalHours += shift.hours;
+                });
+
+                // If employee is overworked, try to redistribute
+                if (totalHours > 80) { // More than 80 hours in 2 weeks
+                    redistributeWorkload(emp.id, dates);
+                    improvements++;
+                }
+            });
+
+            // Optimize for better work-life balance
+            appState.employees.forEach(emp => {
+                optimizeWorkLifeBalance(emp.id, dates);
+            });
+
+            renderSchedule();
+            updateStatistics();
+            validateSchedule();
+            
+            showAlert(`Schedule optimized! ${improvements} improvements made`, 'success');
+        }
+
+        function redistributeWorkload(empId, dates) {
+            // Find days where employee is working and try to swap with others
+            const workDays = dates.filter(date => 
+                appState.schedule[date][empId] !== 'off' && 
+                appState.schedule[date][empId] !== 'leave'
+            );
+
+            // Try to swap some work days with off days from other employees
+            const halfPoint = Math.floor(workDays.length / 2);
+            for (let i = halfPoint; i < workDays.length; i++) {
+                const date = workDays[i];
+                const currentShift = appState.schedule[date][empId];
+                
+                // Find someone who is off and can take this shift
+                const availableEmp = appState.employees.find(otherEmp => 
+                    otherEmp.id !== empId && 
+                    appState.schedule[date][otherEmp.id] === 'off' &&
+                    canTakeShift(otherEmp.id, date, currentShift)
+                );
+
+                if (availableEmp) {
+                    appState.schedule[date][empId] = 'off';
+                    appState.schedule[date][availableEmp.id] = currentShift;
+                    break;
+                }
+            }
+        }
+
+        function optimizeWorkLifeBalance(empId, dates) {
+            // Try to group off days together for better rest periods
+            const offDays = dates.filter(date => appState.schedule[date][empId] === 'off');
+            
+            if (offDays.length >= 2) {
+                // Try to make consecutive off days
+                for (let i = 0; i < dates.length - 1; i++) {
+                    const today = dates[i];
+                    const tomorrow = dates[i + 1];
+                    
+                    if (appState.schedule[today][empId] === 'off' && 
+                        appState.schedule[tomorrow][empId] !== 'off' &&
+                        appState.schedule[tomorrow][empId] !== 'leave') {
+                        
+                        // Try to swap tomorrow's shift with someone else's off day
+                        const swapCandidate = appState.employees.find(otherEmp => 
+                            otherEmp.id !== empId &&
+                            appState.schedule[tomorrow][otherEmp.id] === 'off' &&
+                            canTakeShift(otherEmp.id, tomorrow, appState.schedule[tomorrow][empId]) &&
+                            !checkNightToMorningViolation(otherEmp.id, tomorrow, appState.schedule[tomorrow][empId]) // Prevent bad swap
+                        );
+
+                        if (swapCandidate) {
+                            const tempShift = appState.schedule[tomorrow][empId];
+                            appState.schedule[tomorrow][empId] = 'off';
+                            appState.schedule[tomorrow][swapCandidate.id] = tempShift;
+                        }
+                    }
+                }
+            }
+        }
+
+        function canTakeShift(empId, date, shiftType) {
+            const emp = appState.employees.find(e => e.id === empId);
+            
+            // Check if Senior-on-Duty shift requires qualified employee
+            if (shiftType === 'day' && !emp.canSeniorDuty) {
+                // Check if there's already a Senior-on-Duty for this day
+                const hasSeniorCoverage = appState.employees.some(otherEmp => 
+                    otherEmp.canSeniorDuty && 
+                    appState.schedule[date][otherEmp.id] !== 'off' &&
+                    appState.schedule[date][otherEmp.id] !== 'leave'
+                );
+                if (!hasSeniorCoverage) return false;
+            }
+
+            // Check for night-to-morning violation
+            if (checkNightToMorningViolation(emp.id, date, shiftType)) {
+                return false;
+            }
+
+            // Check consecutive days rule
+            const dates = Object.keys(appState.schedule).sort();
+            const dateIndex = dates.indexOf(date);
+            let consecutive = 0;
+
+            // Count backwards
+            for (let i = dateIndex - 1; i >= 0; i--) {
+                if (appState.schedule[dates[i]][emp.id] !== 'off' && 
+                    appState.schedule[dates[i]][emp.id] !== 'leave') {
+                    consecutive++;
+                } else {
+                    break;
+                }
+            }
+
+            return consecutive < 3;
+        }
+
+        function exportToExcel() {
+            // Create CSV content
+            let csvContent = "Employee,Role,";
+            const dates = Object.keys(appState.schedule).sort();
+            
+            // Add date headers
+            dates.forEach(date => {
+                const dateObj = new Date(date);
+                const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+                const dayNum = dateObj.getDate();
+                csvContent += `${dayName} ${dayNum},`;
+            });
+            csvContent += "Total Hours,OT Hours\n";
+
+            // Add employee data
+            appState.employees.forEach(emp => {
+                let totalHours = 0;
+                let otHours = 0;
+                
+                csvContent += `${emp.name},${emp.role},`;
+                
+                dates.forEach(date => {
+                    const shiftType = appState.schedule[date][emp.id];
+                    const shift = shifts[shiftType];
+                    csvContent += `${shift.name} ${shift.time},`;
+                    totalHours += shift.hours;
+                    if (shift.hours === 12) otHours += 4;
+                });
+                
+                csvContent += `${totalHours},${otHours}\n`;
+            });
+
+            // Download CSV file
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `Healthcare_Schedule_${appState.startDate.toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            
+            showAlert('Schedule exported to Excel/CSV successfully!', 'success');
+        }
+
+        function showAlert(message, type) {
+            const alertsContainer = document.getElementById('alerts');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.innerHTML = message;
+            
+            alertsContainer.innerHTML = '';
+            alertsContainer.appendChild(alert);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.parentNode.removeChild(alert);
+                }
+            }, 5000);
+        }
+
+        // Event listeners
+        document.getElementById('scheduleStart').addEventListener('change', function() {
+            const selectedDate = new Date(this.value);
+            if (selectedDate.getDay() !== 0) {
+                showAlert('Please select a Sunday as the start date', 'error');
+                // Reset to nearest Sunday
+                const sunday = new Date(selectedDate);
+                sunday.setDate(selectedDate.getDate() - selectedDate.getDay());
+                this.value = sunday.toISOString().split('T')[0];
+            }
+        });
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const leaveModal = document.getElementById('leaveModal');
+            const employeeModal = document.getElementById('employeeModal');
+            if (event.target === leaveModal) {
+                closeLeaveModal();
+            }
+            if (event.target === employeeModal) {
+                closeEmployeeModal();
+            }
+        };
+
+        // Initialize the application when page loads
+        document.addEventListener('DOMContentLoaded', initializeApp);
+
+        // Advanced scheduling functions for better automation
+        function checkNightToMorningViolation(empId, date, shiftType) {
+            if (shiftType !== 'day' && shiftType !== 'day-ot') return false;
+            
+            const dates = Object.keys(appState.schedule).sort();
+            const dateIndex = dates.indexOf(date);
+            
+            if (dateIndex > 0) {
+                const previousDate = dates[dateIndex - 1];
+                const previousShift = appState.schedule[previousDate][empId];
+                return previousShift === 'night' || previousShift === 'night-ot';
+            }
+            return false;
+        }
+
+        function getEmployeeWorkload(empId) {
+            const dates = Object.keys(appState.schedule);
+            let totalHours = 0;
+            let otHours = 0;
+            let consecutiveDays = 0;
+            let maxConsecutive = 0;
+            let currentConsecutive = 0;
+
+            dates.forEach(date => {
+                const shiftType = appState.schedule[date][empId];
+                const shift = shifts[shiftType];
+                totalHours += shift.hours;
+                
+                if (shift.hours === 12) otHours += 4;
+                
+                if (shift.hours > 0) {
+                    currentConsecutive++;
+                    maxConsecutive = Math.max(maxConsecutive, currentConsecutive);
+                } else {
+                    currentConsecutive = 0;
+                }
+            });
+
+            return {
+                totalHours,
+                otHours,
+                maxConsecutive,
+                weeklyAverage: totalHours / 2
+            };
+        }
+
+        function generateDetailedReport() {
+            let report = "=== HEALTHCARE SCHEDULE ANALYSIS ===\n\n";
+            
+            // Employee workload analysis
+            report += "EMPLOYEE WORKLOAD ANALYSIS:\n";
+            report += "-".repeat(50) + "\n";
+            
+            appState.employees.forEach(emp => {
+                const workload = getEmployeeWorkload(emp.id);
+                report += `${emp.name} (${emp.role}):\n`;
+                report += `  Total Hours: ${workload.totalHours}h\n`;
+                report += `  Overtime: ${workload.otHours}h\n`;
+                report += `  Max Consecutive Days: ${workload.maxConsecutive}\n`;
+                report += `  Weekly Average: ${workload.weeklyAverage}h\n\n`;
+            });
+
+            // Coverage analysis
+            report += "SHIFT COVERAGE ANALYSIS:\n";
+            report += "-".repeat(50) + "\n";
+            
+            const dates = Object.keys(appState.schedule).sort();
+            dates.forEach(date => {
+                const dateObj = new Date(date);
+                const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
+                
+                report += `${dayName} ${dateObj.getDate()}:\n`;
+                
+                ['day', 'evening', 'night'].forEach(shift => {
+                    const coverage = appState.employees.filter(emp => {
+                        const empShift = appState.schedule[date][emp.id];
+                        return empShift === shift || 
+                               (shift === 'day' && empShift === 'day-ot') ||
+                               (shift === 'night' && empShift === 'night-ot');
+                    });
+                    
+                    report += `  ${shift.charAt(0).toUpperCase() + shift.slice(1)}: ${coverage.length} staff\n`;
+                });
+                report += "\n";
+            });
+
+            console.log(report);
+            return report;
+        }
+
+        // Helper: Count assigned shifts in a week for an employee
+        function getWeeklyShiftCount(empId, weekNum, dates) {
+            const weekStart = weekNum === 0 ? dates[0] : dates[7];
+            const weekEnd = weekNum === 0 ? dates[6] : dates[13];
+            let count = 0;
+            for (let d = dates.indexOf(weekStart); d <= dates.indexOf(weekEnd); d++) {
+                const currentDate = dates[d];
+                const shift = appState.schedule[currentDate][empId];
+                if (shift !== 'off' && shift !== 'leave') count++;
+            }
+            return count;
+        }
+
+        // Clears all scheduled shifts and leaves everything as OFF for manual assignment
+        function clearSchedule() {
+            const startDateInput = document.getElementById('scheduleStart').value;
+            if (!startDateInput) {
+                showAlert('Please select a start date', 'error');
+                return;
+            }
+
+            // If schedule hasn't been generated yet, create an empty structure first
+            if (Object.keys(appState.schedule).length === 0) {
+                appState.startDate = new Date(startDateInput);
+                if (appState.startDate.getDay() !== 0) {
+                    showAlert('Start date must be a Sunday', 'error');
+                    return;
+                }
+
+                for (let day = 0; day < 14; day++) {
+                    const date = new Date(appState.startDate);
+                    date.setDate(appState.startDate.getDate() + day);
+                    const dateStr = date.toISOString().split('T')[0];
+
+                    appState.schedule[dateStr] = {};
+                    appState.employees.forEach(emp => {
+                        appState.schedule[dateStr][emp.id] = 'off';
+                    });
+                }
+            } else {
+                // Reset existing schedule entries to OFF
+                Object.keys(appState.schedule).forEach(date => {
+                    Object.keys(appState.schedule[date]).forEach(empId => {
+                        appState.schedule[date][empId] = 'off';
+                    });
+                });
+            }
+
+            renderSchedule();
+            updateStatistics();
+            validateSchedule();
+            showAlert('Schedule cleared. You can now assign shifts manually.', 'success');
+        }
+
+        // ==================== Employee Management ==================== //
+        function showEmployeeModal() {
+            renderEmployeeSelectOptions();
+            clearEmployeeForm();
+            document.getElementById('employeeModal').style.display = 'block';
+        }
+
+        function closeEmployeeModal() {
+            document.getElementById('employeeModal').style.display = 'none';
+        }
+
+        function renderEmployeeSelectOptions() {
+            const select = document.getElementById('employeeSelect');
+            select.innerHTML = '<option value="">➕ Add New Employee</option>';
+            appState.employees.forEach(emp => {
+                const option = document.createElement('option');
+                option.value = emp.id;
+                option.textContent = `${emp.name} (${emp.role})`;
+                select.appendChild(option);
+            });
+        }
+
+        function clearEmployeeForm() {
+            document.getElementById('employeeName').value = '';
+            document.getElementById('employeeRole').value = 'Senior-on-Duty';
+            document.getElementById('employeeCanSeniorDuty').checked = false;
+        }
+
+        function populateEmployeeFields() {
+            const empId = document.getElementById('employeeSelect').value;
+            if (!empId) {
+                clearEmployeeForm();
+                return;
+            }
+            const emp = appState.employees.find(e => e.id == empId);
+            if (emp) {
+                document.getElementById('employeeName').value = emp.name;
+                document.getElementById('employeeRole').value = emp.role;
+                document.getElementById('employeeCanSeniorDuty').checked = emp.canSeniorDuty;
+            }
+        }
+
+        function saveEmployee() {
+            const empId = document.getElementById('employeeSelect').value;
+            const name = document.getElementById('employeeName').value.trim();
+            const role = document.getElementById('employeeRole').value;
+            const canSeniorDuty = document.getElementById('employeeCanSeniorDuty').checked;
+
+            if (!name) {
+                showAlert('Please enter a valid employee name', 'error');
+                return;
+            }
+
+            if (!empId) {
+                // Add new employee
+                const newId = appState.employees.length ? Math.max(...appState.employees.map(e => e.id)) + 1 : 1;
+                const newEmp = { id: newId, name, role, tenure: newId, canSeniorDuty };
+                appState.employees.push(newEmp);
+                addEmployeeToSchedule(newId);
+                showAlert('Employee added successfully', 'success');
+            } else {
+                // Update existing employee
+                const emp = appState.employees.find(e => e.id == empId);
+                if (emp) {
+                    emp.name = name;
+                    emp.role = role;
+                    emp.canSeniorDuty = canSeniorDuty;
+                    showAlert('Employee updated successfully', 'success');
+                }
+            }
+
+            saveEmployees();
+            populateLeaveEmployeeSelect();
+            renderSchedule();
+            updateStatistics();
+            validateSchedule();
+            renderEmployeeSelectOptions();
+        }
+
+        function deleteEmployee() {
+            const empId = document.getElementById('employeeSelect').value;
+            if (!empId) {
+                showAlert('Please select an employee to delete', 'error');
+                return;
+            }
+            const idNum = parseInt(empId);
+            appState.employees = appState.employees.filter(e => e.id !== idNum);
+            removeEmployeeFromSchedule(idNum);
+            delete appState.leaveRequests[idNum];
+
+            saveEmployees();
+            populateLeaveEmployeeSelect();
+            renderSchedule();
+            updateStatistics();
+            validateSchedule();
+            renderEmployeeSelectOptions();
+            clearEmployeeForm();
+            showAlert('Employee deleted successfully', 'success');
+        }
+
+        function addEmployeeToSchedule(empId) {
+            Object.keys(appState.schedule).forEach(date => {
+                appState.schedule[date][empId] = 'off';
+            });
+        }
+
+        function removeEmployeeFromSchedule(empId) {
+            Object.keys(appState.schedule).forEach(date => {
+                delete appState.schedule[date][empId];
+            });
+        }
+
+        function displayValidationAlerts() {
+            if (!appState.lastAlerts) {
+                showAlert('Please generate and validate the schedule first.', 'warning');
+                return;
+            }
+            showAlert(appState.lastAlerts, appState.lastAlertType);
+        }
+
+        function getShiftCountSoFar(empId) {
+            return appState.shiftAssignedCounts[empId] || 0;
+        }
+
+        // ==================== Schedule History Management ==================== //
+        function populateSavedSchedules() {
+            const savedSchedules = JSON.parse(localStorage.getItem('savedSchedules')) || [];
+            const select = document.getElementById('savedSchedules');
+            select.innerHTML = '<option value="">-- Select a saved schedule --</option>';
+            
+            savedSchedules.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // Show newest first
+
+            savedSchedules.forEach(state => {
+                const option = document.createElement('option');
+                option.value = state.name;
+                option.textContent = `${state.name} (Saved: ${new Date(state.timestamp).toLocaleString()})`;
+                select.appendChild(option);
+            });
+        }
+
+        function saveScheduleState() {
+            const name = prompt("Enter a name for this schedule state:", `Schedule ${new Date().toLocaleDateString()}`);
+            if (!name) return;
+
+            const savedSchedules = JSON.parse(localStorage.getItem('savedSchedules')) || [];
+
+            if (savedSchedules.some(s => s.name === name)) {
+                if (!confirm(`A schedule with the name "${name}" already exists. Overwrite it?`)) {
+                    return;
+                }
+            }
+
+            const state = {
+                name: name,
+                timestamp: new Date().toISOString(),
+                scheduleData: appState.schedule,
+                leaveData: appState.leaveRequests,
+                startDate: document.getElementById('scheduleStart').value
+            };
+
+            const newSavedSchedules = savedSchedules.filter(s => s.name !== name);
+            newSavedSchedules.push(state);
+
+            localStorage.setItem('savedSchedules', JSON.stringify(newSavedSchedules));
+            populateSavedSchedules();
+            showAlert(`Schedule state "${name}" saved successfully!`, 'success');
+        }
+
+        function loadSelectedSchedule() {
+            const select = document.getElementById('savedSchedules');
+            const name = select.value;
+            if (!name) {
+                showAlert('Please select a schedule to load from the history.', 'warning');
+                return;
+            }
+
+            showSpinner();
+            setTimeout(() => {
+                try {
+                    const savedSchedules = JSON.parse(localStorage.getItem('savedSchedules')) || [];
+                    const state = savedSchedules.find(s => s.name === name);
+
+                    if (state) {
+                        appState.schedule = state.scheduleData;
+                        appState.leaveRequests = state.leaveData;
+                        appState.startDate = new Date(state.startDate);
+                        document.getElementById('scheduleStart').value = state.startDate;
+
+                        renderSchedule();
+                        updateStatistics();
+                        validateSchedule();
+                        showAlert(`Schedule "${name}" loaded successfully.`, 'success');
+                    } else {
+                        showAlert(`Could not find schedule state "${name}".`, 'error');
+                    }
+                } finally {
+                    hideSpinner();
+                }
+            }, 10);
+        }
+
+        function deleteSelectedSchedule() {
+            const select = document.getElementById('savedSchedules');
+            const name = select.value;
+            if (!name) {
+                showAlert('Please select a schedule to delete from the history.', 'warning');
+                return;
+            }
+
+            if (confirm(`Are you sure you want to delete the schedule state "${name}"? This cannot be undone.`)) {
+                let savedSchedules = JSON.parse(localStorage.getItem('savedSchedules')) || [];
+                savedSchedules = savedSchedules.filter(s => s.name !== name);
+                localStorage.setItem('savedSchedules', JSON.stringify(savedSchedules));
+                
+                populateSavedSchedules();
+                showAlert(`Schedule "${name}" deleted successfully.`, 'success');
+            }
+        }
+    </script>
+</body>
+</html>
