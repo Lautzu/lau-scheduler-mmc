@@ -11,14 +11,14 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            height: 100vh;
             margin: 0;
         }
         .login-container {
             background: white;
             padding: 40px;
             border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             text-align: center;
             width: 90%;
             max-width: 400px;
@@ -27,44 +27,34 @@
             color: #2c3e50;
             margin-bottom: 20px;
         }
-        .input-group {
-            margin-bottom: 20px;
-            text-align: left;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            color: #666;
-            font-weight: 600;
-        }
         input[type="password"] {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #ddd;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
             border-radius: 8px;
+            box-sizing: border-box;
             font-size: 16px;
-            box-sizing: border-box; /* Important */
         }
-        .btn {
+        button {
             width: 100%;
-            padding: 12px;
+            padding: 15px;
             border: none;
             border-radius: 8px;
-            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            font-weight: 600;
             font-size: 16px;
+            font-weight: 600;
             cursor: pointer;
-            transition: transform 0.2s ease;
+            transition: transform 0.2s;
         }
-        .btn:hover {
+        button:hover {
             transform: translateY(-2px);
         }
-        .error-message {
-            color: #e74c3c;
+        .error {
+            color: #d32f2f;
             margin-top: 15px;
-            font-weight: 600;
-            display: none; /* Hidden by default */
+            display: none;
         }
     </style>
 </head>
@@ -72,31 +62,12 @@
     <div class="login-container">
         <h1>Scheduler Login</h1>
         <form id="loginForm">
-            <div class="input-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" required>
-            </div>
-            <button type="submit" class="btn">Login</button>
-            <p id="errorMessage" class="error-message">Incorrect password. Please try again.</p>
+            <input type="password" id="password" placeholder="Enter Password" required>
+            <button type="submit">Login</button>
         </form>
+        <p class="error" id="errorMessage">Incorrect password. Please try again.</p>
     </div>
 
-    <script>
-        document.getElementById('loginForm').addEventListener('submit', function(event) {
-            event.preventDefault();
-            
-            const correctPassword = 'mmc_pulmo';
-            
-            const enteredPassword = document.getElementById('password').value;
-            const errorMessage = document.getElementById('errorMessage');
-
-            if (enteredPassword === correctPassword) {
-                sessionStorage.setItem('isAuthenticated', 'true');
-                window.location.href = 'scheduler.html';
-            } else {
-                errorMessage.style.display = 'block';
-            }
-        });
-    </script>
+    <script src="login.js"></script>
 </body>
 </html> 
