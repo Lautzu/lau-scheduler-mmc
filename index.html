@@ -257,6 +257,18 @@
             margin-bottom: 10px;
         }
 
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
         .form-group {
             margin-bottom: 20px;
         }
@@ -274,18 +286,6 @@
             border: 2px solid #ddd;
             border-radius: 8px;
             font-size: 14px;
-        }
-
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .close:hover {
-            color: #000;
         }
 
         .alert {
@@ -372,6 +372,85 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                width: 100%;
+                margin: 0;
+                border-radius: 10px;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .date-selector, .legend {
+                flex-direction: column;
+                align-items: stretch;
+                width: 100%;
+            }
+
+            .schedule-table, .schedule-table thead, .schedule-table tbody, .schedule-table th, .schedule-table td, .schedule-table tr {
+                display: block;
+            }
+
+            .schedule-table thead tr {
+                position: absolute;
+                top: -9999px;
+                left: -9999px;
+            }
+            
+            .schedule-table tr {
+                border: 1px solid #ccc;
+                margin-bottom: 10px;
+                border-radius: 8px;
+            }
+            
+            .schedule-table td {
+                border: none;
+                border-bottom: 1px solid #eee;
+                position: relative;
+                padding-left: 50%;
+                text-align: right;
+                font-size: 14px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .schedule-table td:before {
+                position: absolute;
+                left: 10px;
+                width: 45%;
+                padding-right: 10px;
+                white-space: nowrap;
+                text-align: left;
+                font-weight: bold;
+                content: attr(data-label);
+            }
+
+            .employee-name {
+                text-align: center;
+                border-right: none;
+                border-bottom: 3px solid #3498db;
+                font-size: 1.1em;
+                min-width: 0;
+            }
+
+            .stats-panel {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -852,65 +931,49 @@
         }
 
         function renderSchedule() {
-            const table = document.getElementById('scheduleTable');
-            const header = document.getElementById('tableHeader');
-            const body = document.getElementById('tableBody');
+            const tableBody = document.getElementById('scheduleBody');
+            const tableHeadRow = document.querySelector('#scheduleHead tr');
+            tableBody.innerHTML = '';
+            tableHeadRow.innerHTML = '<th>Employee</th>';
 
-            // Clear existing content
-            header.innerHTML = '';
-            body.innerHTML = '';
+            const dates = getDatesArray(appState.startDate, appState.endDate);
+            const dateOptions = { weekday: 'short', month: 'numeric', day: 'numeric' };
 
-            // Create header
-            const headerRow = document.createElement('tr');
-            headerRow.innerHTML = '<th>Employee</th>';
-            
-            const dates = Object.keys(appState.schedule).sort();
-            dates.forEach((date, index) => {
-                const dateObj = new Date(date);
-                const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
-                const dayNum = dateObj.getDate();
+            dates.forEach(date => {
                 const th = document.createElement('th');
-                th.innerHTML = `${dayName}<br>${dayNum}`;
-                if (index === 6) { // End of the first week (Saturday)
-                    th.classList.add('week-separator');
-                }
-                headerRow.appendChild(th);
+                th.textContent = new Intl.DateTimeFormat('en-US', dateOptions).format(date);
+                tableHeadRow.appendChild(th);
             });
-            header.appendChild(headerRow);
 
-            // Create employee rows
-            appState.employees.forEach((emp, index) => {
+            appState.employees.forEach(emp => {
                 const row = document.createElement('tr');
+                row.innerHTML = `<td class="employee-name ${getRoleClass(emp.role)}">${emp.name}<span class="role-indicator">${emp.role}</span></td>`;
                 
-                // Employee name cell
-                const nameCell = document.createElement('td');
-                nameCell.className = `employee-name ${getRoleClass(emp.role)}`;
-                nameCell.innerHTML = `
-                    ${emp.name}
-                    <span class="role-indicator">${emp.role}</span>
-                `;
-                row.appendChild(nameCell);
-
-                // Shift cells
-                dates.forEach((date, dateIndex) => {
-                    const cell = document.createElement('td');
-                    const shiftType = appState.schedule[date][emp.id];
-                    const shift = shifts[shiftType];
-                    
-                    cell.className = shift.class;
-                    if (dateIndex === 6) { // End of the first week
-                        cell.classList.add('week-separator');
+                dates.forEach(date => {
+                    const dateString = date.toISOString().split('T')[0];
+                    if (!appState.schedule[dateString]) {
+                        appState.schedule[dateString] = {};
                     }
-                    cell.innerHTML = `
+                    if (!appState.schedule[dateString][emp.id]) {
+                        appState.schedule[dateString][emp.id] = 'off';
+                    }
+                    
+                    const shiftType = appState.schedule[dateString][emp.id];
+                    const shift = shifts[shiftType];
+                    const td = document.createElement('td');
+                    td.className = shift.class;
+                    td.dataset.label = new Intl.DateTimeFormat('en-US', dateOptions).format(date);
+                    td.innerHTML = `
                         <div>${shift.name}</div>
                         <small>${shift.time}</small>
                     `;
-                    cell.onclick = () => toggleShift(emp.id, date, cell);
-                    row.appendChild(cell);
+                    td.onclick = () => toggleShift(emp.id, dateString, td);
+                    row.appendChild(td);
                 });
 
-                body.appendChild(row);
+                tableBody.appendChild(row);
             });
+            debouncedValidation();
         }
 
         function getRoleClass(role) {
