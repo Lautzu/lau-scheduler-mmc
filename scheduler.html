@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lautzu Staff Shift Scheduler</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-top-left-radius: 15px;
+            border-top-right-radius: 15px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .controls {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #d32f2f 100%);
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .date-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .date-selector input {
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .schedule-container {
+            padding: 20px;
+            overflow: auto;
+            max-height: 70vh;
+        }
+
+        .schedule-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-radius: 10px;
+        }
+
+        .schedule-table th {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 15px 8px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .schedule-table thead tr:first-child th:first-child { border-top-left-radius: 10px; }
+        .schedule-table thead tr:first-child th:last-child { border-top-right-radius: 10px; }
+        .schedule-table tbody tr:last-child td:first-child { border-bottom-left-radius: 10px; }
+        .schedule-table tbody tr:last-child td:last-child { border-bottom-right-radius: 10px; }
+
+        .schedule-table td {
+            padding: 12px 8px;
+            text-align: center;
+            border: 1px solid #ddd;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .schedule-table td:hover {
+            transform: scale(1.05);
+            z-index: 10;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .employee-name {
+            background: #f8f9fa;
+            font-weight: 700;
+            color: #2c3e50;
+            padding: 15px 10px;
+            border-right: 3px solid #3498db;
+            min-width: 150px;
+            text-align: left;
+        }
+
+        .role-indicator {
+            font-size: 10px;
+            color: #666;
+            display: block;
+            margin-top: 3px;
+        }
+
+        /* Shift Colors */
+        .day-shift { background: #e3f2fd; color: #0d47a1; }
+        .evening-shift { background: #e8f5e8; color: #1b5e20; }
+        .night-shift { background: #f3e5f5; color: #4a148c; }
+        .day-ot { background: #fff3e0; color: #e65100; }
+        .night-ot { background: #fce4ec; color: #880e4f; }
+        .off-day { background: #f5f5f5; color: #757575; }
+        .leave { background: #fff9c4; color: #f57f17; }
+
+        /* Role border colors */
+        .senior-duty { border-left: 4px solid #e74c3c; }
+        .icu { border-left: 4px solid #3498db; }
+        .wards { border-left: 4px solid #2ecc71; }
+        .emergency { border-left: 4px solid #f39c12; }
+        .outpatient { border-left: 4px solid #9b59b6; }
+
+        .stats-panel {
+            background: #f8f9fa;
+            padding: 20px;
+            border-top: 1px solid #e9ecef;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            border-bottom-left-radius: 15px;
+            border-bottom-right-radius: 15px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+
+        .modal-header {
+            border-bottom: 2px solid #eee;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                width: 100%;
+                margin: 0;
+                border-radius: 10px;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .date-selector, .legend {
+                flex-direction: column;
+                align-items: stretch;
+                width: 100%;
+            }
+
+            .schedule-table, .schedule-table thead, .schedule-table tbody, .schedule-table th, .schedule-table td, .schedule-table tr {
+                display: block;
+            }
+
+            .schedule-table thead tr {
+                position: absolute;
+                top: -9999px;
+                left: -9999px;
+            }
+            
+            .schedule-table tr {
+                border: 1px solid #ccc;
+                margin-bottom: 10px;
+                border-radius: 8px;
+            }
+            
+            .schedule-table td {
+                border: none;
+                border-bottom: 1px solid #eee;
+                position: relative;
+                padding-left: 50%;
+                text-align: right;
+                font-size: 14px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .schedule-table td:before {
+                position: absolute;
+                left: 10px;
+                width: 45%;
+                padding-right: 10px;
+                white-space: nowrap;
+                text-align: left;
+                font-weight: bold;
+                content: attr(data-label);
+            }
+
+            .employee-name {
+                text-align: center;
+                border-right: none;
+                border-bottom: 3px solid #3498db;
+                font-size: 1.1em;
+                min-width: 0;
+            }
+
+            .stats-panel {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <script>
+        // Check if the user is authenticated. If not, redirect to the login page.
+        if (sessionStorage.getItem('isAuthenticated') !== 'true') {
+            window.location.href = 'index.html';
+        }
+    </script>
+    <div class="container">
+        <header class="header">
+            <h1>Lautzu Staff Shift Scheduler</h1>
+        </header>
+        <div class="controls">
+             <button onclick="generateSchedule()">Generate Schedule</button>
+             <button onclick="exportToExcel()">Export to Excel</button>
+             <div id="date-range">
+                 <input type="date" id="start-date">
+                 <input type="date" id="end-date">
+             </div>
+        </div>
+        <div class="schedule-container">
+            <table class="schedule-table">
+                <thead id="scheduleHead">
+                    <tr></tr>
+                </thead>
+                <tbody id="scheduleBody">
+                </tbody>
+            </table>
+        </div>
+        <div class="stats-panel">
+             <div class="stat-card">
+                 <div class="stat-value" id="totalHours">0</div>
+                 <div class="stat-label">Total Hours</div>
+             </div>
+        </div>
+    </div>
+     <div id="leaveModal" class="modal">
+         <div class="modal-content">
+             <span class="close" onclick="closeLeaveModal()">&times;</span>
+             <h2>Assign Leave</h2>
+             <select id="leaveEmployee"></select>
+             <input type="date" id="leaveStartDate">
+             <input type="date" id="leaveEndDate">
+             <button onclick="assignLeave()">Assign</button>
+         </div>
+     </div>
+
+    <script>
+        // Employee data structure - can be replaced with a dynamic fetch later
+        const employees = [
+            {id: 1, name: "Rico C. Campos, RTRP", role: "Senior-on-Duty"},
+            {id: 2, name: "Maria Katrina S. Pattung, RTRP", role: "Senior-on-Duty"},
+            {id: 3, name: "Mariam B. Buddin, RTRP", role: "Senior-on-Duty"},
+            {id: 4, name: "Ruiza E. San Antonio, RTRP", role: "Senior-on-Duty"},
+            {id: 5, name: "Faith D. Villanueva, RTRP", role: "ICU"},
+            {id: 6, name: "Blessilda D. Larzdizabal, RTRP", role: "ICU"},
+            {id: 7, name: "Jecilyn A. Usman, RTRP", role: "ICU"},
+            {id: 8, name: "Christine Joyce M. Villareal, RTRP", role: "ICU"},
+            {id: 9, name: "Rania S. Casalin, RTRP", role: "WARDS"},
+            {id: 10, name: "Kamila D. Ahajul, RTRP", role: "WARDS"},
+            {id: 11, name: "Ameera M. Ebni, RTRP", role: "WARDS"},
+            {id: 12, name: "Eunice Yvonne L. Trinidad, RTRP", role: "Emergency"},
+            {id: 13, name: "Yannina Marie J. Valdeñas, RTRP", role: "Emergency"},
+            {id: 14, name: "Pia P. Lacson, RTRP", role: "Outpatient"},
+            {id: 15, name: "Shaina Mae P. Rodriguez, RTRP", role: "Outpatient"},
+            {id: 16, name: "Crizel Ann A. Davis, RTRP", role: "Outpatient"},
+        ];
+
+        const shifts = {
+            'day': {name: 'Day', time: '6AM-2PM', hours: 8, class: 'day-shift'},
+            'evening': {name: 'Evening', time: '2PM-10PM', hours: 8, class: 'evening-shift'},
+            'night': {name: 'Night', time: '10PM-6AM', hours: 8, class: 'night-shift'},
+            'day-ot': {name: 'Day OT', time: '6AM-6PM', hours: 12, class: 'day-ot'},
+            'night-ot': {name: 'Night OT', time: '6PM-6AM', hours: 12, class: 'night-ot'},
+            'off': {name: 'Off', time: '', hours: 0, class: 'off-day'},
+            'leave': {name: 'Leave', time: '', hours: 0, class: 'leave'}
+        };
+
+        let appState = {
+            schedule: {},
+            startDate: null,
+            endDate: null
+        };
+
+        const debouncedValidation = debounce(() => {
+            updateStatistics();
+        }, 500);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date();
+            const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+            const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            
+            document.getElementById('start-date').valueAsDate = firstDayOfMonth;
+            document.getElementById('end-date').valueAsDate = lastDayOfMonth;
+            
+            generateSchedule();
+        });
+
+        function getDatesArray(start, end) {
+            let arr = [];
+            for(let dt=new Date(start); dt<=new Date(end); dt.setDate(dt.getDate()+1)){
+                arr.push(new Date(dt));
+            }
+            return arr;
+        }
+
+        function generateSchedule() {
+            appState.startDate = new Date(document.getElementById('start-date').value);
+            appState.endDate = new Date(document.getElementById('end-date').value);
+            
+            const dates = getDatesArray(appState.startDate, appState.endDate);
+            
+            // Auto-generate a schedule (simple version)
+            const shiftTypes = ['day', 'evening', 'night', 'off', 'off']; // 3 shifts, 2 off days
+            dates.forEach(date => {
+                const dateString = date.toISOString().split('T')[0];
+                appState.schedule[dateString] = {};
+                employees.forEach((emp, index) => {
+                    const shiftIndex = (index + date.getDate()) % shiftTypes.length;
+                    appState.schedule[dateString][emp.id] = shiftTypes[shiftIndex];
+                });
+            });
+            renderSchedule();
+        }
+
+        function renderSchedule() {
+            const tableBody = document.getElementById('scheduleBody');
+            const tableHeadRow = document.querySelector('#scheduleHead tr');
+            tableBody.innerHTML = '';
+            tableHeadRow.innerHTML = '<th>Employee</th>';
+
+            const dates = getDatesArray(appState.startDate, appState.endDate);
+            const dateOptions = { weekday: 'short', month: 'numeric', day: 'numeric' };
+
+            dates.forEach(date => {
+                const th = document.createElement('th');
+                th.textContent = new Intl.DateTimeFormat('en-US', dateOptions).format(date);
+                tableHeadRow.appendChild(th);
+            });
+
+            employees.forEach(emp => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td class="employee-name ${getRoleClass(emp.role)}">${emp.name}<span class="role-indicator">${emp.role}</span></td>`;
+                
+                dates.forEach(date => {
+                    const dateString = date.toISOString().split('T')[0];
+                    if (!appState.schedule[dateString]) {
+                        appState.schedule[dateString] = {};
+                    }
+                    if (!appState.schedule[dateString][emp.id]) {
+                        appState.schedule[dateString][emp.id] = 'off';
+                    }
+                    
+                    const shiftType = appState.schedule[dateString][emp.id];
+                    const shift = shifts[shiftType];
+                    const td = document.createElement('td');
+                    td.className = shift.class;
+                    td.dataset.label = new Intl.DateTimeFormat('en-US', dateOptions).format(date);
+                    td.innerHTML = `
+                        <div>${shift.name}</div>
+                        <small>${shift.time}</small>
+                    `;
+                    td.onclick = () => toggleShift(emp.id, dateString, td);
+                    row.appendChild(td);
+                });
+
+                tableBody.appendChild(row);
+            });
+            debouncedValidation();
+        }
+
+        function getRoleClass(role) {
+            const roleMap = {
+                'Senior-on-Duty': 'senior-duty',
+                'ICU': 'icu',
+                'WARDS': 'wards',
+                'Emergency': 'emergency',
+                'Outpatient': 'outpatient'
+            };
+            return roleMap[role] || '';
+        }
+
+        function toggleShift(empId, date, cell) {
+            const currentShift = appState.schedule[date][empId];
+            const shiftKeys = Object.keys(shifts);
+            const currentIndex = shiftKeys.indexOf(currentShift);
+            const nextIndex = (currentIndex + 1) % shiftKeys.length;
+            const nextShift = shiftKeys[nextIndex];
+
+            appState.schedule[date][empId] = nextShift;
+            
+            const shift = shifts[nextShift];
+            cell.className = shift.class;
+            cell.innerHTML = `
+                <div>${shift.name}</div>
+                <small>${shift.time}</small>
+            `;
+            debouncedValidation();
+        }
+
+        function updateStatistics() {
+            let totalHours = 0;
+            const dates = getDatesArray(appState.startDate, appState.endDate);
+
+            employees.forEach(emp => {
+                dates.forEach(date => {
+                    const dateString = date.toISOString().split('T')[0];
+                    const shiftType = appState.schedule[dateString][emp.id];
+                    const shift = shifts[shiftType];
+                    if(shift) totalHours += shift.hours;
+                });
+            });
+
+            document.getElementById('totalHours').textContent = totalHours;
+        }
+
+        function exportToExcel() {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Employee," + getDatesArray(appState.startDate, appState.endDate).map(d => d.toLocaleDateString()).join(',') + "\n";
+
+            employees.forEach(emp => {
+                let row = emp.name + ",";
+                row += getDatesArray(appState.startDate, appState.endDate).map(date => {
+                    const dateString = date.toISOString().split('T')[0];
+                    const shiftType = appState.schedule[dateString][emp.id];
+                    return shifts[shiftType] ? shifts[shiftType].name : "N/A";
+                }).join(',');
+                csvContent += row + "\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "schedule.csv");
+            document.body.appendChild(link);
+            link.click();
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                const context = this;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(context, args), wait);
+            };
+        }
+    </script>
+</body>
+</html>
