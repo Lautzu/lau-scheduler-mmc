@@ -128,19 +128,36 @@
         </form>
     </div>
 
+    <script src="config.js"></script>
     <script>
         function checkPassword(event) {
             event.preventDefault();
             const password = document.getElementById('password').value;
-            const correctPassword = 'mmc_pulmo'; // You can change this password
-
-            if (password === correctPassword) {
-                // Store login state
-                sessionStorage.setItem('isLoggedIn', 'true');
+            const errorElement = document.getElementById('error-message');
+            
+            // Check if account is locked
+            if (SecurityUtils.isAccountLocked()) {
+                errorElement.textContent = 'Account temporarily locked due to failed attempts. Please try again later.';
+                errorElement.style.display = 'block';
+                return false;
+            }
+            
+            // Validate password using security utilities
+            if (SecurityUtils.validatePassword(password)) {
+                // Store login state with timestamp
+                const loginData = {
+                    isLoggedIn: 'true',
+                    timestamp: Date.now()
+                };
+                sessionStorage.setItem('loginData', JSON.stringify(loginData));
+                SecurityUtils.resetAttempts();
+                
                 // Redirect to scheduler
                 window.location.href = 'scheduler.html';
             } else {
-                document.getElementById('error-message').style.display = 'block';
+                SecurityUtils.recordFailedAttempt();
+                errorElement.textContent = 'Incorrect password. Please try again.';
+                errorElement.style.display = 'block';
                 document.getElementById('password').value = '';
             }
             return false;
