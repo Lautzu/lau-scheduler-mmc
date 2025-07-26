@@ -153,6 +153,7 @@
           src="Makati_Medical_Center_Logo.png"
           alt="Makati Medical Center"
           class="mmc-logo"
+          onerror="this.style.display='none'; document.querySelector('.login-header h1').style.marginTop='0'"
         />
         <h1>Makati Medical Center</h1>
         <p>Staff Scheduler - Pulmonary Laboratory Division</p>
@@ -160,7 +161,12 @@
       <form class="login-form" onsubmit="return checkPassword(event)">
         <div class="form-group">
           <label for="password">Password</label>
-          <input type="password" id="password" required />
+          <input
+            type="password"
+            id="password"
+            required
+            autocomplete="current-password"
+          />
         </div>
         <p class="error-message" id="error-message">
           Incorrect password. Please try again.
