@@ -630,10 +630,10 @@ function calculateOptimalLayout() {
   const employeeCount = appState.employees.length;
 
   // Use fixed, readable values instead of complex viewport calculations
-  const targetRowHeight = 45; // Fixed readable row height
-  const cellPadding = 12; // Fixed comfortable padding
-  const fontSize = 12; // Fixed readable font size
-  const employeeNamePadding = 15; // Fixed name padding
+  const targetRowHeight = 22; // Compact row height (50% reduction)
+  const cellPadding = 6; // Compact padding (50% reduction)
+  const fontSize = 11; // Slightly reduced font size for compact layout
+  const employeeNamePadding = 8; // Compact name padding (50% reduction)
 
   // Calculate natural container height based on content
   const tableHeaderHeight = 50;

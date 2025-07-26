@@ -299,33 +299,33 @@
 
       .stats-panel {
         background: #f8f9fa;
-        padding: 20px;
+        padding: 6px;
         border-top: 1px solid #e9ecef;
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 20px;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 6px;
         border-bottom-left-radius: 15px;
         border-bottom-right-radius: 15px;
       }
 
       .stat-card {
         background: white;
-        padding: 15px;
-        border-radius: 10px;
-        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        padding: 4px;
+        border-radius: 5px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         text-align: center;
       }
 
       .stat-value {
-        font-size: 2em;
+        font-size: 0.9em;
         font-weight: 700;
-        color: #2c3e50;
+        color: white;
       }
 
       .stat-label {
-        color: #666;
-        font-size: 14px;
-        margin-top: 5px;
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 8px;
+        margin-top: 2px;
       }
 
       .modal {
@@ -420,6 +420,23 @@
       .violation-cell {
         outline: 3px solid #e74c3c !important;
         outline-offset: -3px;
+      }
+
+      /* Stats card color themes */
+      .stat-card.total-hours {
+        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+      }
+
+      .stat-card.overtime-hours {
+        background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+      }
+
+      .stat-card.avg-coverage {
+        background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+      }
+
+      .stat-card.schedule-violations {
+        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
       }
 
       .week-separator {
@@ -694,19 +711,19 @@
       </div>
 
       <div class="stats-panel">
-        <div class="stat-card">
+        <div class="stat-card total-hours">
           <div class="stat-value" id="totalHours">0</div>
           <div class="stat-label">Total Hours Scheduled</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card overtime-hours">
           <div class="stat-value" id="otHours">0</div>
           <div class="stat-label">Overtime Hours</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card avg-coverage">
           <div class="stat-value" id="avgCoverage">0</div>
           <div class="stat-label">Avg Coverage per Shift</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card schedule-violations">
           <div class="stat-value" id="violations">0</div>
           <div class="stat-label">Schedule Violations</div>
         </div>
