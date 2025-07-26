@@ -1549,7 +1549,34 @@ function downloadCSVFile(csvContent) {
 
 // ==================== Clear Schedule ==================== //
 
-function clearSchedule() {
+function showClearModal() {
+  document.getElementById("clearModal").style.display = "block";
+}
+
+function closeClearModal() {
+  document.getElementById("clearModal").style.display = "none";
+}
+
+function confirmClearSchedule() {
+  const clearType = document.getElementById("clearType").value;
+  closeClearModal();
+
+  switch (clearType) {
+    case "all":
+      clearSchedule("all");
+      break;
+    case "work-only":
+      clearSchedule("work-only");
+      break;
+    case "regenerate":
+      clearSchedule("regenerate");
+      break;
+    default:
+      clearSchedule("all");
+  }
+}
+
+function clearSchedule(clearType = "all") {
   const startDateInput = document.getElementById("scheduleStart").value;
   if (!startDateInput) {
     showAlert("Please select a start date", "error");
@@ -1567,10 +1594,23 @@ function clearSchedule() {
     resetScheduleToOff();
   }
 
+  if (clearType === "work-only") {
+    applyLeaveRequests();
+    showAlert("Work shifts cleared. Leave requests preserved.", "success");
+  } else if (clearType === "regenerate") {
+    applyLeaveRequests();
+    autoGenerateSchedule();
+    showAlert("Schedule cleared and regenerated automatically.", "success");
+  } else {
+    showAlert(
+      "Schedule cleared. You can now assign shifts manually.",
+      "success",
+    );
+  }
+
   renderSchedule();
   updateStatistics();
   validateSchedule();
-  showAlert("Schedule cleared. You can now assign shifts manually.", "success");
 }
 
 function resetScheduleToOff() {
@@ -1608,10 +1648,14 @@ document
 window.onclick = function (event) {
   const leaveModal = document.getElementById("leaveModal");
   const employeeModal = document.getElementById("employeeModal");
+  const clearModal = document.getElementById("clearModal");
   if (event.target === leaveModal) {
     closeLeaveModal();
   }
   if (event.target === employeeModal) {
     closeEmployeeModal();
+  }
+  if (event.target === clearModal) {
+    closeClearModal();
   }
 };

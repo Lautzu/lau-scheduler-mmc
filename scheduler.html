@@ -651,7 +651,7 @@
         <button class="btn btn-warning" onclick="displayValidationAlerts()">
           🚨 Check Alerts
         </button>
-        <button class="btn btn-danger" onclick="clearSchedule()">
+        <button class="btn btn-danger" onclick="showClearModal()">
           🧹 Clear Schedule
         </button>
         <button class="btn btn-success" onclick="saveScheduleState()">
@@ -810,6 +810,37 @@
           🗑️ Delete
         </button>
         <button class="btn" onclick="closeEmployeeModal()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Clear Schedule Confirmation Modal -->
+    <div id="clearModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <span class="close" onclick="closeClearModal()">&times;</span>
+          <h2>Clear Schedule</h2>
+          <p>Choose how you want to clear the current schedule</p>
+        </div>
+        <div class="form-group">
+          <label for="clearType">Clear Options:</label>
+          <select id="clearType">
+            <option value="all">Clear All - Reset everything to "Off"</option>
+            <option value="work-only">
+              Clear Work Only - Keep leave requests
+            </option>
+            <option value="regenerate">
+              Clear & Auto-Generate - Fresh optimal schedule
+            </option>
+          </select>
+        </div>
+        <div class="alert alert-warning">
+          <strong>Warning:</strong> This action cannot be undone. Consider
+          saving your current schedule first.
+        </div>
+        <button class="btn btn-danger" onclick="confirmClearSchedule()">
+          🧹 Confirm Clear
+        </button>
+        <button class="btn" onclick="closeClearModal()">Cancel</button>
       </div>
     </div>
 
