@@ -23,20 +23,21 @@ export default function LoginPage() {
       if (isValidLegacy) {
         // Create a temporary session for legacy login
         // In production, this should be replaced with proper Supabase auth
-        sessionStorage.setItem(
-          "loginData",
-          JSON.stringify({
-            isLoggedIn: true,
-            timestamp: Date.now(),
-            legacy: true,
-          }),
-        );
+        const sessionData = {
+          isLoggedIn: true,
+          timestamp: Date.now(),
+          legacy: true,
+          expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
+        };
+
+        sessionStorage.setItem("loginData", JSON.stringify(sessionData));
+        localStorage.setItem("lastLogin", Date.now().toString());
 
         router.push("/scheduler");
       } else {
         setError("Incorrect password. Please try again.");
       }
-    } catch (error) {
+    } catch {
       setError("Login failed. Please try again.");
     } finally {
       setIsLoading(false);

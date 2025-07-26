@@ -1,3 +1,106 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Development Commands
+
+```bash
+npm run dev          # Start Next.js development server on http://localhost:3000
+npm run build        # Build for production
+npm run start        # Start production server
+npm run test         # Run tests with Vitest in watch mode
+npm run test:run     # Run tests once without watch mode
+npm run typecheck    # TypeScript type checking
+npm run lint         # ESLint linting
+npm run prettier     # Format code with Prettier
+npm run prettier:check  # Check code formatting
+```
+
+## Architecture Overview
+
+This is a healthcare staff scheduler application for Makati Medical Center with the following key characteristics:
+
+### Technology Stack
+- **Frontend**: Next.js 15 with TypeScript, Tailwind CSS, App Router
+- **Backend**: Supabase (PostgreSQL with Row Level Security)
+- **Testing**: Vitest with comprehensive unit and integration tests
+- **Deployment**: Vercel with automatic GitHub integration
+
+### Core Architecture Patterns
+
+**Functional Programming Approach**: The scheduler follows functional programming patterns with pure functions for business logic. Core scheduling algorithms are in `lib/` directory and are fully testable without side effects.
+
+**Separation of Concerns**: 
+- `lib/` contains pure business logic (schedule-core, validation, assignment)
+- `src/app/` contains Next.js UI components and pages
+- `database.sql` defines the Supabase schema with RLS policies
+
+**Legacy Migration Strategy**: The application migrates from localStorage to Supabase seamlessly. Original JavaScript modules in `lib/` maintain backward compatibility while adding database persistence.
+
+### Key Directories
+
+- `lib/` - Core scheduling logic (JavaScript modules with JSDoc types)
+  - `schedule-core.js` - Pure scheduling algorithms and business rules
+  - `schedule-assignment.js` - Employee assignment logic
+  - `schedule-validation.js` - Schedule validation rules
+  - `supabase.js` - Database utilities and migration helpers
+  - `*.spec.js` - Comprehensive test suites for each module
+- `src/app/` - Next.js application (TypeScript)
+  - `login/` - Authentication pages
+  - `scheduler/` - Main scheduling interface
+  - `api/lib/[...path]/` - Dynamic API routes for lib functions
+- `database.sql` - Complete Supabase schema setup
+- `backup/` - Original HTML/JS implementation for reference
+
+### Domain Model
+
+**Core Entities**:
+- `Employee` - Staff members with roles, tenure, and qualifications
+- `Schedule` - Named schedule states with employee data and assignments
+- `Shift` - Work periods (day, evening, night, day-ot, night-ot, off, leave)
+
+**Business Rules**:
+- Maximum 3 consecutive working days
+- Minimum 2 off days per week
+- No night-to-morning shift transitions
+- Role-based department assignments
+- Senior duty qualifications for ICU
+
+### Testing Strategy
+
+**Unit Tests**: Each `lib/*.js` file has corresponding `*.spec.js` tests using Vitest. Tests follow property-based testing where possible and avoid trivial assertions.
+
+**Test Organization**: Tests are colocated with source files in `lib/` directory. Integration tests would be added for database operations and API endpoints.
+
+**Business Logic Coverage**: Core scheduling algorithms have comprehensive test coverage including edge cases, constraint violations, and optimization scenarios.
+
+## Environment Setup
+
+1. Install dependencies: `npm install`
+2. Set up Supabase project and run `database.sql` in SQL Editor
+3. Copy `.env.local.example` to `.env.local` with your Supabase credentials
+4. Run development server: `npm run dev`
+
+## Development Guidelines
+
+**Type Safety**: Uses JSDoc for type annotations in JavaScript files and full TypeScript in React components. Branded types are used for IDs following the existing pattern.
+
+**Code Style**: Follows functional programming principles with pure, composable functions. Prettier and ESLint enforce consistent formatting and code quality.
+
+**Database**: All database operations use Supabase client with Row Level Security. The `StorageUtils` object provides localStorage-compatible interface for database operations.
+
+**Path Aliases**: 
+- `@/*` maps to `./src/*`
+- `@/lib/*` maps to `./lib/*`
+
+## Testing
+
+Run single test file: `npm run test -- schedule-core.spec.js`
+Run with coverage: `npm run test -- --coverage`
+Run specific test: `npm run test -- --grep "function name"`
+
+Tests should pass both `npm run typecheck` and `npm run lint` before commits.
+
 # Claude Code Guidelines by Sabrina Ramonov
 
 ## Implementation Best Practices
