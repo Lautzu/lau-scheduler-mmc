@@ -44,6 +44,15 @@ function initializeApp() {
   populateLeaveEmployeeSelect();
   populateSavedSchedules();
   generateSchedule();
+
+  // Add window resize listener for dynamic layout recalculation
+  let resizeTimer;
+  window.addEventListener("resize", () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      renderSchedule();
+    }, 250); // Debounce resize events
+  });
 }
 
 function loadEmployees() {
@@ -617,7 +626,52 @@ function determineShiftWithOT(shiftType, date) {
 
 // ==================== Schedule Rendering ==================== //
 
+function calculateOptimalLayout() {
+  const employeeCount = appState.employees.length;
+
+  // Use fixed, readable values instead of complex viewport calculations
+  const targetRowHeight = 45; // Fixed readable row height
+  const cellPadding = 12; // Fixed comfortable padding
+  const fontSize = 12; // Fixed readable font size
+  const employeeNamePadding = 15; // Fixed name padding
+
+  // Calculate natural container height based on content
+  const tableHeaderHeight = 50;
+  const containerPadding = 40;
+  const naturalContentHeight =
+    targetRowHeight * employeeCount + tableHeaderHeight + containerPadding;
+
+  // Update CSS custom properties with fixed values
+  document.documentElement.style.setProperty("--employee-count", employeeCount);
+  document.documentElement.style.setProperty(
+    "--target-row-height",
+    `${targetRowHeight}px`,
+  );
+  document.documentElement.style.setProperty(
+    "--cell-padding",
+    `${cellPadding}px`,
+  );
+  document.documentElement.style.setProperty(
+    "--cell-font-size",
+    `${fontSize}px`,
+  );
+  document.documentElement.style.setProperty(
+    "--employee-name-padding",
+    `${employeeNamePadding}px`,
+  );
+  document.documentElement.style.setProperty("--employee-name-width", "130px"); // Slightly reduced for more space
+
+  return {
+    employeeCount,
+    targetRowHeight,
+    naturalContentHeight,
+  };
+}
+
 function renderSchedule() {
+  // Calculate optimal layout before rendering
+  const layoutInfo = calculateOptimalLayout();
+
   const tableBody = document.getElementById("tableBody");
   const tableHeader = document.getElementById("tableHeader");
   tableBody.innerHTML = "";
@@ -626,12 +680,17 @@ function renderSchedule() {
   const dates = getDatesArray(appState.startDate);
   const dateOptions = { weekday: "short", month: "numeric", day: "numeric" };
 
-  // Render header
+  // Render date headers
   dates.forEach((date) => {
     const th = document.createElement("th");
     th.textContent = new Intl.DateTimeFormat("en-US", dateOptions).format(date);
     tableHeader.appendChild(th);
   });
+
+  // Add OT Hours header as the last column
+  const otHeader = document.createElement("th");
+  otHeader.textContent = "OT Hours";
+  tableHeader.appendChild(otHeader);
 
   // Render employee rows
   appState.employees.forEach((emp) => {
@@ -640,6 +699,34 @@ function renderSchedule() {
   });
 
   debouncedValidation();
+}
+
+function createOvertimeCell(emp, dates) {
+  const dateStrings = dates.map((date) => date.toISOString().split("T")[0]);
+  const stats = calculateEmployeeStats(emp, dateStrings);
+
+  const td = document.createElement("td");
+  td.className = "ot-hours";
+  td.textContent = `${stats.otHours}h`;
+
+  // Add color coding based on OT hours
+  if (stats.otHours <= 8) {
+    td.classList.add("low");
+  } else if (stats.otHours <= 16) {
+    td.classList.add("moderate");
+  } else {
+    td.classList.add("high");
+  }
+
+  // Add tooltip showing breakdown
+  const week1Dates = dateStrings.slice(0, 7);
+  const week2Dates = dateStrings.slice(7, 14);
+  const week1Stats = calculateEmployeeStats(emp, week1Dates);
+  const week2Stats = calculateEmployeeStats(emp, week2Dates);
+
+  td.title = `Week 1: ${week1Stats.otHours}h, Week 2: ${week2Stats.otHours}h`;
+
+  return td;
 }
 
 function createEmployeeRow(emp, dates, dateOptions) {
@@ -655,6 +742,11 @@ function createEmployeeRow(emp, dates, dateOptions) {
     const td = createShiftCell(shift, emp.id, dateString, dateOptions, date);
     row.appendChild(td);
   });
+
+  // Add OT Hours cell as the last column
+  const otCell = createOvertimeCell(emp, dates);
+  otCell.dataset.empId = emp.id;
+  row.appendChild(otCell);
 
   return row;
 }
@@ -691,6 +783,37 @@ function getRoleClass(role) {
   return roleMap[role] || "";
 }
 
+function updateEmployeeOvertimeCell(empId) {
+  const otCell = document.querySelector(`td.ot-hours[data-emp-id="${empId}"]`);
+  if (!otCell) return;
+
+  const emp = appState.employees.find((e) => e.id === empId);
+  if (!emp) return;
+
+  const dates = getDatesArray(appState.startDate);
+  const dateStrings = dates.map((date) => date.toISOString().split("T")[0]);
+  const stats = calculateEmployeeStats(emp, dateStrings);
+
+  otCell.textContent = `${stats.otHours}h`;
+
+  // Update color coding based on OT hours
+  otCell.classList.remove("low", "moderate", "high");
+  if (stats.otHours <= 8) {
+    otCell.classList.add("low");
+  } else if (stats.otHours <= 16) {
+    otCell.classList.add("moderate");
+  } else {
+    otCell.classList.add("high");
+  }
+
+  // Update tooltip showing breakdown
+  const week1Dates = dateStrings.slice(0, 7);
+  const week2Dates = dateStrings.slice(7, 14);
+  const week1Stats = calculateEmployeeStats(emp, week1Dates);
+  const week2Stats = calculateEmployeeStats(emp, week2Dates);
+  otCell.title = `Week 1: ${week1Stats.otHours}h, Week 2: ${week2Stats.otHours}h`;
+}
+
 const debouncedValidation = debounce(() => {
   updateStatistics();
   validateSchedule();
@@ -707,6 +830,7 @@ function toggleShift(empId, date, cell) {
 
   appState.schedule[date][empId] = nextShift;
   updateShiftCell(cell, nextShift);
+  updateEmployeeOvertimeCell(empId);
   debouncedValidation();
   validateCellViolations(empId, cell);
 }
@@ -730,7 +854,8 @@ function validateCellViolations(empId, cell) {
 }
 
 function clearRowViolations(row) {
-  for (let i = 1; i < row.cells.length; i++) {
+  // Skip employee name (index 0) and OT Hours (last index), only process date cells
+  for (let i = 1; i < row.cells.length - 1; i++) {
     row.cells[i].classList.remove("violation-cell");
     row.cells[i].title = "";
   }
@@ -759,8 +884,9 @@ function highlightConsecutiveViolation(
 ) {
   const blockStartIndex = currentIndex - consecutiveCount + 1;
   for (let i = blockStartIndex; i <= currentIndex; i++) {
+    // Cell index: employee name (0) + date cells (1-14), skip OT Hours (last cell)
     const cell = row.cells[i + 1];
-    if (cell) {
+    if (cell && i + 1 < row.cells.length - 1) {
       cell.classList.add("violation-cell");
       cell.title = `Violation: ${consecutiveCount} consecutive working days.`;
     }
@@ -775,8 +901,9 @@ function checkNightToMorningViolations(empId, dates, row, cell) {
       const currentShift = appState.schedule[d][empId];
 
       if (isNightToMorningViolation(prevShift, currentShift)) {
+        // Cell index: employee name (0) + date cells (1-14), skip OT Hours (last cell)
         const problemCell = row.cells[index + 1];
-        if (problemCell) {
+        if (problemCell && index + 1 < row.cells.length - 1) {
           problemCell.classList.add("violation-cell");
           const existingTitle = problemCell.title;
           problemCell.title = existingTitle
