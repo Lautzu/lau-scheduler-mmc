@@ -31,8 +31,9 @@ function isWorkingShift(shiftType) {
  */
 function isNightToMorningViolation(prevShift, currentShift) {
   const isNightShift = prevShift === "night" || prevShift === "night-ot";
+  const isEveningShift = prevShift === "evening";
   const isMorningShift = currentShift === "day" || currentShift === "day-ot";
-  return isNightShift && isMorningShift;
+  return (isNightShift || isEveningShift) && isMorningShift;
 }
 
 /**

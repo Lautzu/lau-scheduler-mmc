@@ -37,11 +37,18 @@ describe("isNightToMorningViolation", () => {
     expect(isNightToMorningViolation("night-ot", "day-ot")).toBe(true);
   });
 
+  test("detects evening to morning violations", () => {
+    expect(isNightToMorningViolation("evening", "day")).toBe(true);
+    expect(isNightToMorningViolation("evening", "day-ot")).toBe(true);
+  });
+
   test("does not flag valid transitions", () => {
     expect(isNightToMorningViolation("day", "evening")).toBe(false);
     expect(isNightToMorningViolation("evening", "night")).toBe(false);
     expect(isNightToMorningViolation("night", "off")).toBe(false);
     expect(isNightToMorningViolation("off", "day")).toBe(false);
+    expect(isNightToMorningViolation("evening", "evening")).toBe(false);
+    expect(isNightToMorningViolation("evening", "night")).toBe(false);
   });
 });
 
