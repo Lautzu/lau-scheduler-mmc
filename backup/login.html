@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - Makati Medical Center Scheduler</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #2e5db7 0%, #1e4a8c 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .login-container {
+        background: white;
+        padding: 48px;
+        border-radius: 15px;
+        box-shadow: 0 20px 40px rgba(46, 93, 183, 0.15);
+        width: 100%;
+        max-width: 450px;
+      }
+
+      .login-header {
+        text-align: center;
+        margin-bottom: 32px;
+      }
+
+      .mmc-logo {
+        max-width: 200px;
+        height: auto;
+        margin-bottom: 24px;
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .login-header h1 {
+        color: #2e5db7;
+        font-size: 1.75em;
+        margin-bottom: 8px;
+        font-weight: 700;
+      }
+
+      .login-header p {
+        color: #666;
+        font-size: 0.95em;
+        line-height: 1.4;
+      }
+
+      .login-form {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .form-group label {
+        color: #2c3e50;
+        font-weight: 600;
+        font-size: 0.9em;
+      }
+
+      .form-group input {
+        padding: 16px 12px;
+        border: 2px solid #e1e8ed;
+        border-radius: 8px;
+        font-size: 1em;
+        transition: all 0.3s ease;
+        background: #fafbfc;
+      }
+
+      .form-group input:focus {
+        border-color: #2e5db7;
+        outline: none;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(46, 93, 183, 0.1);
+      }
+
+      .login-btn {
+        background: linear-gradient(135deg, #2e5db7 0%, #1e4a8c 100%);
+        color: white;
+        padding: 16px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1em;
+        font-weight: 600;
+        cursor: pointer;
+        transition:
+          transform 0.3s ease,
+          box-shadow 0.3s ease;
+      }
+
+      .login-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(46, 93, 183, 0.3);
+      }
+
+      .login-btn:active {
+        transform: translateY(0);
+      }
+
+      .error-message {
+        color: #dc143c;
+        font-size: 0.9em;
+        text-align: center;
+        display: none;
+        padding: 12px;
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 6px;
+      }
+
+      @media (max-width: 480px) {
+        .login-container {
+          padding: 32px 24px;
+          max-width: 100%;
+        }
+
+        .mmc-logo {
+          max-width: 160px;
+          margin-bottom: 20px;
+        }
+
+        .login-header h1 {
+          font-size: 1.5em;
+        }
+
+        .login-header p {
+          font-size: 0.9em;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-container">
+      <div class="login-header">
+        <img
+          src="Makati_Medical_Center_Logo.png"
+          alt="Makati Medical Center"
+          class="mmc-logo"
+          onerror="this.style.display='none'; document.querySelector('.login-header h1').style.marginTop='0'"
+        />
+        <h1>Makati Medical Center</h1>
+        <p>Staff Scheduler - Pulmonary Laboratory Division</p>
+      </div>
+      <form class="login-form" onsubmit="return checkPassword(event)">
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input
+            type="password"
+            id="password"
+            required
+            autocomplete="current-password"
+          />
+        </div>
+        <p class="error-message" id="error-message">
+          Incorrect password. Please try again.
+        </p>
+        <button type="submit" class="login-btn">Login</button>
+      </form>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+      function checkPassword(event) {
+        event.preventDefault();
+        const password = document.getElementById("password").value;
+        const errorElement = document.getElementById("error-message");
+
+        // Check if account is locked
+        if (SecurityUtils.isAccountLocked()) {
+          errorElement.textContent =
+            "Account temporarily locked due to failed attempts. Please try again later.";
+          errorElement.style.display = "block";
+          return false;
+        }
+
+        // Validate password using security utilities
+        if (SecurityUtils.validatePassword(password)) {
+          // Create secure session
+          SecurityUtils.createSession();
+          SecurityUtils.resetAttempts();
+
+          // Redirect to scheduler
+          window.location.href = "scheduler.html";
+        } else {
+          SecurityUtils.recordFailedAttempt();
+          errorElement.textContent = "Incorrect password. Please try again.";
+          errorElement.style.display = "block";
+          document.getElementById("password").value = "";
+        }
+        return false;
+      }
+    </script>
+  </body>
+</html>

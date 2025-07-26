@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Preserve original scheduler styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Scheduler-specific styles preserved from original */
+.day-shift {
+  background-color: #87ceeb !important;
+  color: #333;
+}
+
+.evening-shift {
+  background-color: #dda0dd !important;
+  color: #333;
+}
+
+.night-shift {
+  background-color: #2f4f4f !important;
+  color: white;
+}
+
+.day-ot {
+  background-color: #ff6347 !important;
+  color: white;
+}
+
+.night-ot {
+  background-color: #8b0000 !important;
+  color: white;
+}
+
+.off-day {
+  background-color: #f0f0f0 !important;
+  color: #666;
+}
+
+.leave {
+  background-color: #ffeb3b !important;
+  color: #333;
+}
+
+/* Preserve original modal and form styles */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+  background-color: #fefefe;
+  margin: 15% auto;
+  padding: 20px;
+  border: 1px solid #888;
+  border-radius: 8px;
+  width: 80%;
+  max-width: 500px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.close {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.close:hover {
+  color: black;
+}

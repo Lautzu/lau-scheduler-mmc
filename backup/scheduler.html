@@ -1,0 +1,872 @@
+<!doctype html>
+<!-- Updated version with fixed schedule generation -->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pulmonary Laboratory Scheduler</title>
+    <script src="config.js"></script>
+    <script>
+      // Check login status with session timeout
+      function validateSession() {
+        if (!SecurityUtils.validateSession()) {
+          return;
+        }
+      }
+
+      validateSession();
+
+      // Logout functionality
+      function showLogoutModal() {
+        document.getElementById("logoutModal").style.display = "block";
+      }
+
+      function closeLogoutModal() {
+        document.getElementById("logoutModal").style.display = "none";
+      }
+
+      function confirmLogout() {
+        SecurityUtils.logout();
+      }
+    </script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      }
+
+      .header {
+        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+        color: white;
+        padding: 20px;
+        text-align: center;
+        border-top-left-radius: 15px;
+        border-top-right-radius: 15px;
+      }
+
+      .header h1 {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+      }
+
+      .controls {
+        background: #f8f9fa;
+        padding: 20px;
+        border-bottom: 1px solid #e9ecef;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        align-items: center;
+      }
+
+      .btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        font-size: 14px;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+
+      .btn-success {
+        background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+        color: white;
+      }
+
+      .btn-warning {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+      }
+
+      .btn-danger {
+        background: linear-gradient(135deg, #ff6b6b 0%, #d32f2f 100%);
+        color: white;
+      }
+
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      }
+
+      .date-selector {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .date-selector input {
+        padding: 8px 12px;
+        border: 2px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+      }
+
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-top: 10px;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 10px;
+        border-radius: 15px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .schedule-container {
+        padding: 20px;
+        overflow-x: auto;
+        overflow-y: auto;
+        max-height: 70vh;
+      }
+
+      .schedule-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin-top: 20px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+      }
+
+      .schedule-table th {
+        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+        color: white;
+        padding: var(--cell-padding) 8px;
+        text-align: center;
+        font-weight: 600;
+        font-size: var(--cell-font-size);
+      }
+
+      .schedule-table thead tr:first-child th:first-child {
+        border-top-left-radius: 10px;
+      }
+      .schedule-table thead tr:first-child th:last-child {
+        border-top-right-radius: 10px;
+      }
+      .schedule-table tbody tr:last-child td:first-child {
+        border-bottom-left-radius: 10px;
+      }
+      .schedule-table tbody tr:last-child td:last-child {
+        border-bottom-right-radius: 10px;
+      }
+
+      .schedule-table tr {
+        height: var(--target-row-height);
+      }
+
+      .schedule-table th,
+      .schedule-table td {
+        vertical-align: middle;
+      }
+
+      .schedule-table td {
+        padding: var(--cell-padding) 8px;
+        text-align: center;
+        border: 1px solid #ddd;
+        font-size: var(--cell-font-size);
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+      }
+
+      .schedule-table td:hover {
+        transform: scale(1.05);
+        z-index: 10;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      }
+
+      .employee-name {
+        background: #f8f9fa;
+        font-weight: 700;
+        color: #2c3e50;
+        padding: var(--employee-name-padding) 10px;
+        border-right: 3px solid #3498db;
+        width: var(--employee-name-width);
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        position: relative;
+      }
+
+      .ot-hours {
+        background: #f8f9fa;
+        font-weight: 600;
+        padding: var(--employee-name-padding) 10px;
+        border-right: 2px solid #bdc3c7;
+        min-width: 80px;
+        text-align: center;
+        font-size: var(--cell-font-size);
+      }
+
+      .ot-hours.low {
+        color: #27ae60;
+      }
+      .ot-hours.moderate {
+        color: #f39c12;
+      }
+      .ot-hours.high {
+        color: #e74c3c;
+      }
+
+      .role-indicator {
+        font-size: calc(var(--cell-font-size) * 0.8);
+        color: #666;
+        display: block;
+        margin-top: 1px;
+      }
+
+      /* Shift Colors */
+      .day-shift {
+        background: #e3f2fd;
+        color: #0d47a1;
+      }
+      .evening-shift {
+        background: #e8f5e8;
+        color: #1b5e20;
+      }
+      .night-shift {
+        background: #f3e5f5;
+        color: #4a148c;
+      }
+      .day-ot {
+        background: #fff3e0;
+        color: #e65100;
+      }
+      .night-ot {
+        background: #fce4ec;
+        color: #880e4f;
+      }
+      .off-day {
+        background: #f5f5f5;
+        color: #757575;
+      }
+      .leave {
+        background: #fff9c4;
+        color: #f57f17;
+      }
+
+      /* Role border colors */
+      .senior-duty {
+        border-left: 4px solid #e74c3c;
+      }
+      .icu {
+        border-left: 4px solid #3498db;
+      }
+      .wards {
+        border-left: 4px solid #2ecc71;
+      }
+      .emergency {
+        border-left: 4px solid #f39c12;
+      }
+      .outpatient {
+        border-left: 4px solid #9b59b6;
+      }
+
+      .stats-panel {
+        background: #f8f9fa;
+        padding: 6px;
+        border-top: 1px solid #e9ecef;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 6px;
+        border-bottom-left-radius: 15px;
+        border-bottom-right-radius: 15px;
+      }
+
+      .stat-card {
+        background: white;
+        padding: 4px;
+        border-radius: 5px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
+
+      .stat-value {
+        font-size: 0.9em;
+        font-weight: 700;
+        color: white;
+      }
+
+      .stat-label {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 8px;
+        margin-top: 2px;
+      }
+
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+      }
+
+      .modal-content {
+        background-color: white;
+        margin: 10% auto;
+        padding: 30px;
+        border-radius: 15px;
+        width: 90%;
+        max-width: 500px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+      }
+
+      .modal-header {
+        border-bottom: 2px solid #eee;
+        padding-bottom: 15px;
+        margin-bottom: 20px;
+      }
+
+      .modal-header h2 {
+        color: #2c3e50;
+        margin-bottom: 10px;
+      }
+
+      .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+
+      .close:hover {
+        color: #000;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #2c3e50;
+      }
+
+      .form-group select,
+      .form-group input {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+      }
+
+      .alert {
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 8px;
+        font-weight: 600;
+      }
+
+      .alert-error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+
+      .alert-success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+
+      .alert-warning {
+        background: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
+      }
+
+      .violation-cell {
+        outline: 3px solid #e74c3c !important;
+        outline-offset: -3px;
+      }
+
+      /* Stats card color themes */
+      .stat-card.total-hours {
+        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+      }
+
+      .stat-card.overtime-hours {
+        background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+      }
+
+      .stat-card.avg-coverage {
+        background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+      }
+
+      .stat-card.schedule-violations {
+        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+      }
+
+      .week-separator {
+        border-right: 3px solid #95a5a6;
+      }
+
+      /* Role indicator styling */
+      .role-indicator {
+        font-size: calc(var(--cell-font-size) * 0.8);
+        color: #666;
+        display: block;
+        margin-top: 2px;
+      }
+
+      /* === Freeze panes === */
+      .schedule-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 3;
+        background: linear-gradient(
+          135deg,
+          #2c3e50 0%,
+          #34495e 100%
+        ); /* keep same style when sticky */
+        color: #fff;
+      }
+      .schedule-table th:first-child {
+        position: sticky;
+        left: 0;
+        z-index: 4;
+        background: #fff;
+      }
+
+      .schedule-table th:last-child {
+        position: sticky;
+        right: 0;
+        z-index: 4;
+        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+        color: #fff;
+      }
+
+      .schedule-table td:last-child {
+        position: sticky;
+        right: 0;
+        z-index: 2;
+        background: #f8f9fa;
+      }
+
+      :root {
+        --header-h: 40px; /* fallback, gets overwritten in JS */
+        --employee-count: 16; /* default employee count for scaling */
+        --target-row-height: 22px; /* calculated exact row height to fit all employees */
+        --cell-padding: 6px; /* dynamic cell padding */
+        --cell-font-size: 12px; /* dynamic cell font size */
+        --employee-name-width: 130px; /* dynamic employee name column width */
+        --employee-name-padding: 7px; /* dynamic employee name padding */
+        --container-height: 70vh; /* exact container height to prevent vertical scrolling */
+      }
+
+      /* Spinner for loading state */
+      .spinner-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.7);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .spinner {
+        border: 8px solid #f3f3f3;
+        border-top: 8px solid #3498db;
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Responsive Design */
+      @media (max-width: 768px) {
+        body {
+          padding: 10px;
+        }
+
+        .container {
+          width: 100%;
+          margin: 0;
+          border-radius: 10px;
+        }
+
+        .header h1 {
+          font-size: 1.8em;
+        }
+
+        .controls {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .date-selector,
+        .legend {
+          flex-direction: column;
+          align-items: stretch;
+          width: 100%;
+        }
+
+        .schedule-table,
+        .schedule-table thead,
+        .schedule-table tbody,
+        .schedule-table th,
+        .schedule-table td,
+        .schedule-table tr {
+          display: block;
+        }
+
+        .schedule-table thead tr {
+          position: absolute;
+          top: -9999px;
+          left: -9999px;
+        }
+
+        .schedule-table tr {
+          border: 1px solid #ccc;
+          margin-bottom: 10px;
+          border-radius: 8px;
+        }
+
+        .schedule-table td {
+          border: none;
+          border-bottom: 1px solid #eee;
+          position: relative;
+          padding-left: 50%;
+          text-align: right;
+          font-size: 14px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .schedule-table td:before {
+          position: absolute;
+          left: 10px;
+          width: 45%;
+          padding-right: 10px;
+          white-space: nowrap;
+          text-align: left;
+          font-weight: bold;
+          content: attr(data-label);
+        }
+
+        .employee-name {
+          text-align: center;
+          border-right: none;
+          border-bottom: 3px solid #3498db;
+          font-size: 1.1em;
+          min-width: 0;
+        }
+
+        .stats-panel {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="spinner-overlay" class="spinner-overlay">
+      <div class="spinner"></div>
+    </div>
+
+    <div class="container">
+      <div class="header">
+        <h1>🫁 Pulmonary Laboratory Scheduler</h1>
+        <p>24/7 Coverage • 16 Employees • 5 Departments</p>
+      </div>
+
+      <div class="controls">
+        <div class="date-selector">
+          <label for="scheduleStart"
+            ><strong>Schedule Start (Sunday):</strong></label
+          >
+          <input type="date" id="scheduleStart" />
+        </div>
+
+        <button class="btn btn-primary" onclick="generateSchedule()">
+          🔄 Generate Auto Schedule
+        </button>
+        <button class="btn btn-success" onclick="exportToExcel()">
+          📊 Export to Excel
+        </button>
+        <button class="btn btn-warning" onclick="showLeaveModal()">
+          📅 Manage Leave
+        </button>
+        <button class="btn btn-primary" onclick="showEmployeeModal()">
+          👥 Manage Employees
+        </button>
+        <button class="btn btn-primary" onclick="optimizeSchedule()">
+          ⚡ Optimize
+        </button>
+        <button class="btn btn-warning" onclick="displayValidationAlerts()">
+          🚨 Check Alerts
+        </button>
+        <button class="btn btn-danger" onclick="showClearModal()">
+          🧹 Clear Schedule
+        </button>
+        <button class="btn btn-success" onclick="saveScheduleState()">
+          💾 Save Schedule
+        </button>
+        <button class="btn btn-danger" onclick="showLogoutModal()">
+          🚪 Logout
+        </button>
+
+        <div class="legend">
+          <div class="legend-item day-shift">Day 6AM-2PM</div>
+          <div class="legend-item evening-shift">Evening 2PM-10PM</div>
+          <div class="legend-item night-shift">Night 10PM-6AM</div>
+          <div class="legend-item day-ot">Day OT 6AM-6PM</div>
+          <div class="legend-item night-ot">Night OT 6PM-6AM</div>
+          <div class="legend-item off-day">Off</div>
+          <div class="legend-item leave">Leave</div>
+        </div>
+      </div>
+
+      <div
+        class="history-controls"
+        style="
+          padding: 15px 20px;
+          background: #e9ecef;
+          border-bottom: 1px solid #ddd;
+          display: flex;
+          gap: 15px;
+          align-items: center;
+        "
+      >
+        <label for="savedSchedules"><strong>Schedule History:</strong></label>
+        <select
+          id="savedSchedules"
+          style="
+            flex-grow: 1;
+            padding: 8px 12px;
+            border: 2px solid #ccc;
+            border-radius: 6px;
+          "
+        ></select>
+        <button class="btn btn-primary" onclick="loadSelectedSchedule()">
+          📂 Load
+        </button>
+        <button class="btn btn-danger" onclick="deleteSelectedSchedule()">
+          🗑️ Delete
+        </button>
+      </div>
+
+      <div class="schedule-container">
+        <div id="alerts"></div>
+        <table class="schedule-table">
+          <thead>
+            <tr id="tableHeader">
+              <th>Employee</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="stats-panel">
+        <div class="stat-card total-hours">
+          <div class="stat-value" id="totalHours">0</div>
+          <div class="stat-label">Total Hours Scheduled</div>
+        </div>
+        <div class="stat-card overtime-hours">
+          <div class="stat-value" id="otHours">0</div>
+          <div class="stat-label">Overtime Hours</div>
+        </div>
+        <div class="stat-card avg-coverage">
+          <div class="stat-value" id="avgCoverage">0</div>
+          <div class="stat-label">Avg Coverage per Shift</div>
+        </div>
+        <div class="stat-card schedule-violations">
+          <div class="stat-value" id="violations">0</div>
+          <div class="stat-label">Schedule Violations</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Leave Management Modal -->
+    <div id="leaveModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <span class="close" onclick="closeLeaveModal()">&times;</span>
+          <h2>Manage Leave Requests</h2>
+          <p>
+            Assign leave days and the system will automatically adjust coverage
+          </p>
+        </div>
+        <div class="form-group">
+          <label for="leaveEmployee">Employee:</label>
+          <select id="leaveEmployee"></select>
+        </div>
+        <div class="form-group">
+          <label for="leaveStartDate">Start Date:</label>
+          <input type="date" id="leaveStartDate" />
+        </div>
+        <div class="form-group">
+          <label for="leaveEndDate">End Date:</label>
+          <input type="date" id="leaveEndDate" />
+        </div>
+        <div class="form-group">
+          <label for="leaveType">Leave Type:</label>
+          <select id="leaveType">
+            <option value="vacation">Vacation</option>
+            <option value="sick">Sick Leave</option>
+            <option value="personal">Personal</option>
+            <option value="off">Regular Off Day</option>
+          </select>
+        </div>
+        <button class="btn btn-success" onclick="assignLeave()">
+          Assign Leave
+        </button>
+        <button class="btn" onclick="closeLeaveModal()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Employee Management Modal -->
+    <div id="employeeModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <span class="close" onclick="closeEmployeeModal()">&times;</span>
+          <h2>Manage Employees</h2>
+          <p>Add, edit, or remove employees</p>
+        </div>
+        <div class="form-group">
+          <label for="employeeSelect">Select Employee:</label>
+          <select
+            id="employeeSelect"
+            onchange="populateEmployeeFields()"
+          ></select>
+        </div>
+        <div class="form-group">
+          <label for="employeeName">Name:</label>
+          <input type="text" id="employeeName" />
+        </div>
+        <div class="form-group">
+          <label for="employeeRole">Role/Department:</label>
+          <select id="employeeRole">
+            <option value="Senior-on-Duty">Senior-on-Duty</option>
+            <option value="ICU">ICU</option>
+            <option value="WARDS">WARDS</option>
+            <option value="Emergency">Emergency</option>
+            <option value="Outpatient">Outpatient</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>
+            <input type="checkbox" id="employeeCanSeniorDuty" /> Can take Senior
+            Duty
+          </label>
+        </div>
+        <button class="btn btn-success" onclick="saveEmployee()">
+          💾 Save
+        </button>
+        <button class="btn btn-danger" onclick="deleteEmployee()">
+          🗑️ Delete
+        </button>
+        <button class="btn" onclick="closeEmployeeModal()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Clear Schedule Confirmation Modal -->
+    <div id="clearModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <span class="close" onclick="closeClearModal()">&times;</span>
+          <h2>Clear Schedule</h2>
+          <p>Choose how you want to clear the current schedule</p>
+        </div>
+        <div class="form-group">
+          <label for="clearType">Clear Options:</label>
+          <select id="clearType">
+            <option value="all">Clear All - Reset everything to "Off"</option>
+            <option value="work-only">
+              Clear Work Only - Keep leave requests
+            </option>
+            <option value="regenerate">
+              Clear & Auto-Generate - Fresh optimal schedule
+            </option>
+          </select>
+        </div>
+        <div class="alert alert-warning">
+          <strong>Warning:</strong> This action cannot be undone. Consider
+          saving your current schedule first.
+        </div>
+        <button class="btn btn-danger" onclick="confirmClearSchedule()">
+          🧹 Confirm Clear
+        </button>
+        <button class="btn" onclick="closeClearModal()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Logout Confirmation Modal -->
+    <div id="logoutModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <span class="close" onclick="closeLogoutModal()">&times;</span>
+          <h2>Confirm Logout</h2>
+          <p>Are you sure you want to logout from the scheduler?</p>
+        </div>
+        <div class="alert alert-warning">
+          <strong>Note:</strong> Make sure to save your current schedule before logging out.
+        </div>
+        <button class="btn btn-danger" onclick="confirmLogout()">
+          🚪 Confirm Logout
+        </button>
+        <button class="btn" onclick="closeLogoutModal()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Include JavaScript modules -->
+    <script src="config.js"></script>
+    <script src="validation.js"></script>
+    <script src="scheduler.js"></script>
+    <script src="employee-management.js"></script>
+    <script src="schedule-optimization.js"></script>
+    <script src="schedule-history.js"></script>
+    <script src="scheduler.spec.js"></script>
+  </body>
+</html>
