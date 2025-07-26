@@ -2,6 +2,22 @@
 // Following CLAUDE.md best practices for robust validation
 
 const InputValidator = {
+  // Authentication input validation
+  validateAuthInput(input) {
+    const trimmedInput = input?.trim();
+
+    if (!trimmedInput) {
+      return { isValid: false, error: "Input is required" };
+    }
+
+    // Check for potential XSS attempts
+    const dangerousChars = /<|>|&lt;|&gt;|javascript:|on\w+=/i;
+    if (dangerousChars.test(trimmedInput)) {
+      return { isValid: false, error: "Invalid characters detected" };
+    }
+
+    return { isValid: true, value: trimmedInput };
+  },
   // Employee name validation
   validateEmployeeName(name) {
     const trimmedName = name?.trim();

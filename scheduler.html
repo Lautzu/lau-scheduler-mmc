@@ -9,30 +9,25 @@
     <script>
       // Check login status with session timeout
       function validateSession() {
-        const loginData = sessionStorage.getItem("loginData");
-        if (!loginData) {
-          window.location.href = "login.html";
-          return;
-        }
-
-        try {
-          const data = JSON.parse(loginData);
-          const currentTime = Date.now();
-          const sessionAge = currentTime - data.timestamp;
-
-          if (!data.isLoggedIn || sessionAge > CONFIG.SESSION_TIMEOUT) {
-            sessionStorage.removeItem("loginData");
-            window.location.href = "login.html";
-            return;
-          }
-        } catch (e) {
-          sessionStorage.removeItem("loginData");
-          window.location.href = "login.html";
+        if (!SecurityUtils.validateSession()) {
           return;
         }
       }
 
       validateSession();
+
+      // Logout functionality
+      function showLogoutModal() {
+        document.getElementById("logoutModal").style.display = "block";
+      }
+
+      function closeLogoutModal() {
+        document.getElementById("logoutModal").style.display = "none";
+      }
+
+      function confirmLogout() {
+        SecurityUtils.logout();
+      }
     </script>
     <style>
       * {
@@ -657,6 +652,9 @@
         <button class="btn btn-success" onclick="saveScheduleState()">
           💾 Save Schedule
         </button>
+        <button class="btn btn-danger" onclick="showLogoutModal()">
+          🚪 Logout
+        </button>
 
         <div class="legend">
           <div class="legend-item day-shift">Day 6AM-2PM</div>
@@ -841,6 +839,24 @@
           🧹 Confirm Clear
         </button>
         <button class="btn" onclick="closeClearModal()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Logout Confirmation Modal -->
+    <div id="logoutModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <span class="close" onclick="closeLogoutModal()">&times;</span>
+          <h2>Confirm Logout</h2>
+          <p>Are you sure you want to logout from the scheduler?</p>
+        </div>
+        <div class="alert alert-warning">
+          <strong>Note:</strong> Make sure to save your current schedule before logging out.
+        </div>
+        <button class="btn btn-danger" onclick="confirmLogout()">
+          🚪 Confirm Logout
+        </button>
+        <button class="btn" onclick="closeLogoutModal()">Cancel</button>
       </div>
     </div>
 

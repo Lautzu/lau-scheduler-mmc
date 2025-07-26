@@ -192,12 +192,8 @@
 
         // Validate password using security utilities
         if (SecurityUtils.validatePassword(password)) {
-          // Store login state with timestamp
-          const loginData = {
-            isLoggedIn: "true",
-            timestamp: Date.now(),
-          };
-          sessionStorage.setItem("loginData", JSON.stringify(loginData));
+          // Create secure session
+          SecurityUtils.createSession();
           SecurityUtils.resetAttempts();
 
           // Redirect to scheduler
