@@ -1,0 +1,20 @@
+{
+  "name": "lau-scheduler-mmc",
+  "version": "1.0.0",
+  "description": "Healthcare Staff Scheduler with improved architecture",
+  "type": "module",
+  "scripts": {
+    "test": "vitest",
+    "test:run": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint *.js",
+    "prettier": "prettier --write *.js",
+    "prettier:check": "prettier --check *.js"
+  },
+  "devDependencies": {
+    "vitest": "^1.0.0",
+    "typescript": "^5.0.0",
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0"
+  }
+}
